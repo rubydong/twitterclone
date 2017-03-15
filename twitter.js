@@ -81,6 +81,7 @@ app.post("/logout", function (request, response) {
     //if not logged in then throw error
      response.json({ "status": "OK" });
 });
+
 app.get("/verify", function (request, response) {
     response.sendFile(path.join(__dirname + "/verify.html"));
 });
@@ -141,6 +142,25 @@ app.get("/item/:id", function (request, response) {
     }
     
     
+});
+
+app.get("/search", function(request, response) {
+   response.sendFile(path.join(__dirname + "/search.html")); 
+
+});
+app.post("/search", function(request, response) {
+    var timestamp = request.body.timestamp;
+    //optional
+    var limit = request.body.limit;
+
+    if (timestamp) {
+        response.json({
+            status:"OK", 
+            "items": "xx"
+        });
+    } else {
+        response.json({status: "ERROR", "Error": "PLEASE FILL IN THE TIMESTAMP"});
+    }
 });
         
 app.listen(8080);
