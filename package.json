@@ -1,0 +1,20 @@
+{
+  "name": "aire",
+  "version": "1.0.0",
+  "main": "twitter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "cookie-session": "^2.0.0-beta.1",
+    "express": "^4.15.2",
+    "mongodb": "^2.2.24",
+    "nodemailer": "^3.1.7",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {},
+  "description": ""
+}
