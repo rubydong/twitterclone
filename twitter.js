@@ -198,25 +198,37 @@ app.post("/additem", function (request, response) {
 
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
-    //if not valid id then error
-    if (id != undefined){
-        
+    console.log("param id is.." + id);
+    if (!request.session.isNew) {
         db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
-            response.json({ "status": "OK", "conversation": getConversation(document.conversations, parseInt(request.body.id)) });
-        });
-
-        
-        response.json({
-            status: "OK", 
-            item: {
-                "id": id, 
-                "username": "x",
-                "content": "x",
-                "timestamp": "x"
+            if (document) {
+                console.log("there exist a record of this user");
+                var tweets = document.tweets;
+                console.log("TWEETS LENGTH IS: " +tweets.length );
+                var found = false;
+                for (var i = 0; i < tweets.length; i++) {
+                    if (tweets[i].tweetid == id) {
+                        found = true;
+                        response.json({
+                            status: "OK", 
+                            item: {
+                                "id": tweets[i].tweetid, 
+                                "username": request.session.username,
+                                "content": tweets[i].tweet,
+                                "timestamp": tweets[i].timestamp
+                            }
+                        });
+                        break;
+                    }
+                }
+                if (!found) {
+                    response.json({status: "ERROR", "Error": "THIS IS AN INVALID ID"});
+                }
             }
         });
+
     } else {
-        response.json({status: "ERROR"});
+        response.json({status: "ERROR", "Error": "USER IS NOT LOGGED IN"});
     }
 });
 
