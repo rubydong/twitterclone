@@ -9,7 +9,11 @@ var MongoClient = require("mongodb").MongoClient;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(__dirname));
-
+app.set("trust proxy", 1); //Trust first proxy
+app.use(cookieSession({
+    name: "session",
+    keys: [(Math.random() + 1).toString(36).substring(7)]
+}));
 
 var emailKey = ""; //For email verification
 
@@ -50,6 +54,7 @@ function sendEmail(email, key) {
 }
          
 app.post("/adduser", function (request, response) {
+    
     var username = request.body.username;
     var password = request.body.password;
     var email = request.body.email;    
@@ -96,14 +101,14 @@ app.get("/login", function (request, response) {
 app.post("/login", function (request, response) {
     var username = request.body.username;
     var password = request.body.password;
-    console.log (username + " " + password);
     
-    /*sets cookie*/
     if (username && password) {
         var username = request.body.username;
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
-                 response.json({"status": "OK"});
+                //sets the cookie 
+                request.session.username = username;
+                response.json({"status": "OK"});
             } else {
                 response.json({"status":"ERROR", "Error": "INVALID LOGIN"});
             }
@@ -116,9 +121,12 @@ app.post("/login", function (request, response) {
 });
 
 app.post("/logout", function (request, response) {
-    //request.session = null;
-    //if not logged in then throw error
-     response.json({ "status": "OK" });
+//    if (request.session.isNew) {
+//        response.json({status: "ERROR", "Error": "ALREADY LOGGED OUT"});
+//    } else {
+        request.session = null;
+        response.json({ "status": "OK" });
+//    }
 });
 
 app.get("/verify", function (request, response) {
@@ -146,25 +154,45 @@ app.post("/verify", function (request, response) {
 });
 
 app.get("/additem", function (request, response) {
- response.sendFile(path.join(__dirname + "/additem.html"));
+response.sendFile(path.join(__dirname + "/additem.html"));
 });
 
 
 app.post("/additem", function (request, response) {
     var content = request.body.content;
-    
     //if not logged in error
-    if (true) {
+    var timestamp = new Date().getTime();
+    console.log(request.session.username);
+    if (!request.session.isNew) {
         var tweetId = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
-        response.json ({
-            status: "OK",
-            id: tweetId,
-        });
+        
+        db.collection("users").update(
+            {"username": request.session.username},
+            {
+              $push: {
+                    "tweets": {
+                          "tweet": content,
+                          "tweetid": tweetId, 
+                          "timestamp": timestamp
+                    }
+                } 
+            },
+            function (error, result) {
+                if (error) {
+                    response.json({ "status": "ERROR" });
+                } else {
+                    response.json ({
+                        status: "OK",
+                        id: tweetId,
+                    });
+                }
+            }
+        );
     } else {
-        response.json ({
-            status: "ERROR", "Error": "USER IS NOT LOGGED IN"
-        });
+        response.json (
+            {status: "ERROR", "Error": "USER IS NOT LOGGED IN"}
+        );
     }
 });
 
@@ -172,20 +200,24 @@ app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     //if not valid id then error
     if (id != undefined){
+        
+        db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
+            response.json({ "status": "OK", "conversation": getConversation(document.conversations, parseInt(request.body.id)) });
+        });
+
+        
         response.json({
             status: "OK", 
             item: {
                 "id": id, 
                 "username": "x",
                 "content": "x",
-                "timesamp": "x"
+                "timestamp": "x"
             }
         });
     } else {
         response.json({status: "ERROR"});
     }
-    
-    
 });
 
 app.get("/search", function(request, response) {

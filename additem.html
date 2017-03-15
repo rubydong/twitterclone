@@ -2,14 +2,32 @@
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
         <form method="POST" action="/additem">
             <h1>Tweet</h1>
-            <textarea name="content"></textarea> <br>
-            <input type="submit" value="tweet"> 
+            <textarea name="content" id="content"></textarea> <br>
+            Total word count: <span id="count">0</span> <br> Max: 140 <br>
+            <input type="submit" value="tweet" id="submit"> 
         </form>
+
+        <script>
+            $(document).ready(function(){    
+                $("#content").on('keyup', function() {
+                    var wordcount = this.value.length;
+                    $("#count").html(wordcount);
+                    if (wordcount > 140) {
+                        $("#submit").prop("disabled", true);
+                    } else {
+                        $("#submit").prop("disabled", false);
+                    }
+                });
+            });
+        </script>
     </body>
+    
+    
 </html>
 
 
