@@ -2,10 +2,15 @@
 body {
     font-family: Open Sans;
     text-align: center;
-    margin-top: 25%;
+    margin-top: 10%;
     background-color: #DCEFF5;
 }
 
 h1 {
     font-size: 100px;
+}
+
+textarea {
+    width: 400px;
+    height: 100px;
 }

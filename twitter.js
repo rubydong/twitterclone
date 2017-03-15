@@ -13,6 +13,13 @@ app.use(express.static(__dirname));
 
 var emailKey = ""; //For email verification
 
+MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
+    if (error) {
+        return console.dir(error);
+    }
+    db = database;
+    console.log("Connected to MongoDB");
+});
 
 app.get("/adduser", function (request, response) {
     response.sendFile (path.join(__dirname + "/adduser.html"));
@@ -47,12 +54,36 @@ app.post("/adduser", function (request, response) {
     var password = request.body.password;
     var email = request.body.email;    
     emailkey = (Math.random() + 1).toString(36).substring(7);
-   
-    /*Error checking if username/email has been taken already*/
+    
     if (username && password && email) {
-        sendEmail (email, emailkey);
-        
-        response.json({"status": "OK"});
+        //check if username/email has been taken already
+        db.collection("users").findOne( {"username": username}, { "conversations": 1 }, function (error, document) {  
+            if (document) {
+                //user exists 
+                response.json({"status": "ERROR", "Error": "USERNAME ALREADY EXISTS"});
+            } else {
+                //user does not exist check emails now
+                db.collection("users").findOne( {"email": email}, { "conversations": 1 }, function (error, document) {  
+                    if (document) {
+                        //email exists
+                        exists = true;
+                        response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
+                    } else {
+                        //username and email does not exist do this
+                        sendEmail (email, emailkey);
+                        var document = {
+                            "username": request.body.username,
+                            "password": request.body.password,
+                            "email": email,
+                            "verified": emailkey, 
+                            "tweets": []
+                        }; 
+                        db.collection("users").insert(document, {w: 1}, function(error, result) {});
+                        response.json({"status": "OK"});
+                    }
+                });
+            }
+        });
     } else {
         response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
     }
@@ -68,12 +99,20 @@ app.post("/login", function (request, response) {
     console.log (username + " " + password);
     
     /*sets cookie*/
-    /*Error checking if it is the right login from database*/
     if (username && password) {
-        response.json({"status": "OK"});
+        var username = request.body.username;
+        db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
+            if (document) {
+                 response.json({"status": "OK"});
+            } else {
+                response.json({"status":"ERROR", "Error": "INVALID LOGIN"});
+            }
+        });
+       
     } else {
         response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
     }
+    
 });
 
 app.post("/logout", function (request, response) {
@@ -89,13 +128,18 @@ app.get("/verify", function (request, response) {
 app.post("/verify", function (request, response) {
     var email = request.body.email;
     var key = request.body.key;
-    /*Error checking for whether valid key for email or abracadabra*/
+
     if (email && key) {
-        /*If it is the correct key from the email*/
-        if ( key == emailkey || key == "abracadabra")
+        if ( key == emailkey || key == "abracadabra") {
             response.json({"status": "OK"});
-        else 
-            response.json({"status": "ERROR", "Error": "Invalid key please try again"});
+            db.collection("users").update(
+                { "email": email }, 
+                { $set: { "verified": "yes" } } 
+            );
+        }
+        else { 
+            response.json({"status": "ERROR", "Error": "INVALID KEY PLEASE TRY AGAIN"});
+        }
     } else {
         response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
     }
