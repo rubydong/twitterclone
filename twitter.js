@@ -109,6 +109,7 @@ app.post("/login", function (request, response) {
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
                 //sets the cookie 
+                console.log("AM I HERE");
                 request.session.username = username;
                 response.json({"status": "OK"});
             } else {
@@ -126,6 +127,7 @@ app.post("/logout", function (request, response) {
 //    if (request.session.isNew) {
 //        response.json({status: "ERROR", "Error": "ALREADY LOGGED OUT"});
 //    } else {
+        console.log("HERERERE");
         request.session = null;
         response.json({ "status": "OK" });
 //    }
@@ -164,8 +166,9 @@ app.post("/additem", function (request, response) {
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
+    console.log(request.session);
     console.log(request.session.username);
-    if (!request.session.isNew) {
+    if (!request.session.isnew && request.session.username != null) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
@@ -248,7 +251,7 @@ app.post("/search", function(request, response) {
     //search through database for less than this time
     //check if timestamp is empty
     if (timestamp) {
-        if (!request.session.isNew) {
+        if (!request.session.isnew && request.session.username != null) {
              db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
                 if (document) {
                     console.log("there exist a record of this user");
