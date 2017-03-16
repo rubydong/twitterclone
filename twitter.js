@@ -18,6 +18,7 @@ app.use(cookieSession({
 var emailKey = ""; //For email verification
 
 MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
+    
     if (error) {
         return console.dir(error);
     }
@@ -30,6 +31,7 @@ app.get("/adduser", function (request, response) {
 });
 
 function sendEmail(email, key) {
+    
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -154,17 +156,17 @@ app.post("/verify", function (request, response) {
 });
 
 app.get("/additem", function (request, response) {
-response.sendFile(path.join(__dirname + "/additem.html"));
+    response.sendFile(path.join(__dirname + "/additem.html"));
 });
 
-
 app.post("/additem", function (request, response) {
+    
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
     console.log(request.session.username);
     if (!request.session.isNew) {
-        var tweetId = Math.round(Math.random()*99999 + 1) * 
+        var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
         db.collection("users").update(
@@ -172,9 +174,11 @@ app.post("/additem", function (request, response) {
             {
               $push: {
                     "tweets": {
-                          "tweet": content,
-                          "tweetid": tweetId, 
+                          "id": id,   
+                          "username": request.session.username,
+                          "content": content,
                           "timestamp": timestamp
+                          
                     }
                 } 
             },
@@ -184,7 +188,7 @@ app.post("/additem", function (request, response) {
                 } else {
                     response.json ({
                         status: "OK",
-                        id: tweetId,
+                        id: id,
                     });
                 }
             }
@@ -197,6 +201,7 @@ app.post("/additem", function (request, response) {
 });
 
 app.get("/item/:id", function (request, response) {
+    
     var id = request.params.id;
     console.log("param id is.." + id);
     if (!request.session.isNew) {
@@ -204,17 +209,17 @@ app.get("/item/:id", function (request, response) {
             if (document) {
                 console.log("there exist a record of this user");
                 var tweets = document.tweets;
-                console.log("TWEETS LENGTH IS: " +tweets.length );
+                
                 var found = false;
                 for (var i = 0; i < tweets.length; i++) {
-                    if (tweets[i].tweetid == id) {
+                    if (tweets[i].id == id) {
                         found = true;
                         response.json({
                             status: "OK", 
                             item: {
-                                "id": tweets[i].tweetid, 
-                                "username": request.session.username,
-                                "content": tweets[i].tweet,
+                                "id": tweets[i].id, 
+                                "username": tweets[i].username,
+                                "content": tweets[i].content,
                                 "timestamp": tweets[i].timestamp
                             }
                         });
@@ -226,7 +231,6 @@ app.get("/item/:id", function (request, response) {
                 }
             }
         });
-
     } else {
         response.json({status: "ERROR", "Error": "USER IS NOT LOGGED IN"});
     }
@@ -234,22 +238,42 @@ app.get("/item/:id", function (request, response) {
 
 app.get("/search", function(request, response) {
    response.sendFile(path.join(__dirname + "/search.html")); 
-
 });
-app.post("/search", function(request, response) {
-    var timestamp = request.body.timestamp;
-    //optional
-    var limit = request.body.limit;
 
+app.post("/search", function(request, response) {
+    
+    var timestamp = request.body.timestamp;
+    /* optional */
+    var limit = request.body.limit;
+    //search through database for less than this time
+    //check if timestamp is empty
     if (timestamp) {
-        response.json({
-            status:"OK", 
-            "items": "xx"
-        });
+        if (!request.session.isNew) {
+             db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
+                if (document) {
+                    console.log("there exist a record of this user");
+                    var tweets = document.tweets;
+                    var found = false;
+                    var items = new Array();
+                    for (var i = 0; i < tweets.length; i++) {
+                        if (tweets[i].timestamp <= timestamp) {
+                            found = true;
+                            items.push(tweets[i]);
+                        }
+                    }
+                    
+                    response.json({status:"OK", "items": items});
+                    
+                }
+            });
+
+        } else {
+            response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
+        }
     } else {
-        response.json({status: "ERROR", "Error": "PLEASE FILL IN THE TIMESTAMP"});
+        response.json({status: "ERROR", "Error": "TIMESTAMP IS EMPTY"});
     }
 });
         
-app.listen(8080);
+app.listen(1337);
 console.log("Server started");
