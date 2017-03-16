@@ -109,7 +109,6 @@ app.post("/login", function (request, response) {
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
                 //sets the cookie 
-                console.log("AM I HERE");
                 request.session.username = username;
                 response.json({"status": "OK"});
             } else {
@@ -204,13 +203,11 @@ app.post("/additem", function (request, response) {
 });
 
 app.get("/item/:id", function (request, response) {
-    
     var id = request.params.id;
     console.log("param id is.." + id);
     if (!request.session.isNew) {
         db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
             if (document) {
-                console.log("there exist a record of this user");
                 var tweets = document.tweets;
                 
                 var found = false;
@@ -248,18 +245,22 @@ app.post("/search", function(request, response) {
     var timestamp = request.body.timestamp;
     /* optional */
     var limit = request.body.limit;
+    var currentLimit = 0;
     //search through database for less than this time
     //check if timestamp is empty
     if (timestamp) {
         if (!request.session.isnew && request.session.username != null) {
              db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
                 if (document) {
-                    console.log("there exist a record of this user");
                     var tweets = document.tweets;
                     var found = false;
                     var items = new Array();
                     for (var i = 0; i < tweets.length; i++) {
                         if (tweets[i].timestamp <= timestamp) {
+                            if (limit != "" && currentLimit > limit){
+                                break;
+                            }
+                            currentLimit++;
                             found = true;
                             items.push(tweets[i]);
                         }
