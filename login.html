@@ -2,14 +2,37 @@
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
-        <form method="POST" action="/login">
+        <form method="POST" action="/login" id="loginForm">
             <h1>Login</h1> <p>
             Username: <input type="text" name="username"> <br>
             Password: <input type="password" name="password"> <br>
             <input type="submit">
-            
         </form>
+        
+        <script>
+            $(document).ready(function () {
+                $("#loginForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/login",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            username: $("input[name='username'").val(), 
+                            password: $("input[name='password']").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8", 
+                        
+                        success: function (data) {
+                           // window.location.href = "additem.html";
+                        }
+                    });
+                    
+                });
+            });
+        </script>
     </body>
 </html>

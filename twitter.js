@@ -15,7 +15,7 @@ app.use(cookieSession({
     keys: [(Math.random() + 1).toString(36).substring(7)]
 }));
 
-var emailKey = ""; //For email verification
+//var emailKey = ""; //For email verification
 
 MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     
@@ -68,6 +68,7 @@ app.post("/adduser", function (request, response) {
             if (document) {
                 //user exists 
                 response.json({"status": "ERROR", "Error": "USERNAME ALREADY EXISTS"});
+                
             } else {
                 //user does not exist check emails now
                 db.collection("users").findOne( {"email": email}, { "conversations": 1 }, function (error, document) {  
@@ -76,8 +77,9 @@ app.post("/adduser", function (request, response) {
                         exists = true;
                         response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
                     } else {
-                        //username and email does not exist do this
-                        sendEmail (email, emailkey);
+                        //username and email does not exist
+                        //DO NOT SEND EMAIL FOR NOW!
+                        //sendEmail (email, emailkey);
                         var document = {
                             "username": request.body.username,
                             "password": request.body.password,
@@ -86,7 +88,9 @@ app.post("/adduser", function (request, response) {
                             "tweets": []
                         }; 
                         db.collection("users").insert(document, {w: 1}, function(error, result) {});
+                        
                         response.json({"status": "OK"});
+                        
                     }
                 });
             }
@@ -141,7 +145,8 @@ app.post("/verify", function (request, response) {
     var key = request.body.key;
 
     if (email && key) {
-        if ( key == emailkey || key == "abracadabra") {
+        //if ( key == emailkey || key == "abracadabra") {
+        if (key == "abracadabra") {
             response.json({"status": "OK"});
             db.collection("users").update(
                 { "email": email }, 

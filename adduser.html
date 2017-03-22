@@ -2,14 +2,40 @@
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
-        <form method="POST" action="/adduser">
+        <form method="POST" action="/adduser" id="adduserForm">
             <h1>ADD USER </h1><p>
             Username: <input type="text" name="username"> <br>
             Email: <input type="text" name="email"> <br>
             Password: <input type="password" name="password"><br>
             <input type="submit">
         </form>
+        
+         <script>
+            $(document).ready(function () {
+                $("#adduserForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/adduser",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            username: $("input[name='username'").val(), 
+                            email: $("input[name='email']").val(),
+                            password: $("input[name='password']").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8", 
+                        
+                        success: function (data) {
+                           // window.location.href = "verify.html";
+                        }
+                    });
+                    
+                });
+            });
+        </script>
+        
     </body>
 </html>
