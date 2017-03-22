@@ -6,8 +6,8 @@ var bodyParser = require("body-parser");
 var nodemailer = require("nodemailer");
 var MongoClient = require("mongodb").MongoClient;
 
-app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
 app.use(express.static(__dirname));
 app.set("trust proxy", 1); //Trust first proxy
 app.use(cookieSession({
@@ -56,6 +56,7 @@ function sendEmail(email, key) {
 }
          
 app.post("/adduser", function (request, response) {
+	console.log("IN ADDUSER POST");
     
     var username = request.body.username;
     var password = request.body.password;
@@ -77,7 +78,7 @@ app.post("/adduser", function (request, response) {
                         response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
                     } else {
                         //username and email does not exist do this
-                        sendEmail (email, emailkey);
+                        //sendEmail (email, emailkey);
                         var document = {
                             "username": request.body.username,
                             "password": request.body.password,
@@ -101,10 +102,12 @@ app.get("/login", function (request, response) {
 });
 
 app.post("/login", function (request, response) {
+	console.log("IN LOGIN POST");
     var username = request.body.username;
     var password = request.body.password;
     
     if (username && password) {
+		console.log("user: %s pass: %s", username, password);
         var username = request.body.username;
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
@@ -126,7 +129,7 @@ app.post("/logout", function (request, response) {
 //    if (request.session.isNew) {
 //        response.json({status: "ERROR", "Error": "ALREADY LOGGED OUT"});
 //    } else {
-        console.log("HERERERE");
+        console.log("IN LOGOUT POST");
         request.session = null;
         response.json({ "status": "OK" });
 //    }
@@ -137,11 +140,13 @@ app.get("/verify", function (request, response) {
 });
 
 app.post("/verify", function (request, response) {
+	console.log("IN VERIFY POST");
     var email = request.body.email;
     var key = request.body.key;
 
     if (email && key) {
         if ( key == emailkey || key == "abracadabra") {
+			console.log("IN HERE IN VERIFY");
             response.json({"status": "OK"});
             db.collection("users").update(
                 { "email": email }, 
@@ -161,6 +166,7 @@ app.get("/additem", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
+	console.log("IN ADDITEM POST");
     
     var content = request.body.content;
     //if not logged in error
@@ -188,6 +194,7 @@ app.post("/additem", function (request, response) {
                 if (error) {
                     response.json({ "status": "ERROR" });
                 } else {
+					console.log("success");
                     response.json ({
                         status: "OK",
                         id: id,
@@ -197,9 +204,10 @@ app.post("/additem", function (request, response) {
         );
     } else {
         response.json (
-            {status: "ERROR", "Error": "USER IS NOT LOGGED IN"}
+            {status: "error", error: "USER IS NOT LOGGED IN"}
         );
     }
+	console.log("EXITED ADDITEM");
 });
 
 app.get("/item/:id", function (request, response) {
@@ -241,13 +249,27 @@ app.get("/search", function(request, response) {
 });
 
 app.post("/search", function(request, response) {
-    
+    console.log("IN SEARCH POST");
+	console.log(request);
     var timestamp = request.body.timestamp;
     /* optional */
     var limit = request.body.limit;
     var currentLimit = 0;
+	limit = 25;
+	if (request.body.limit) {
+		limit = request.body.limit;
+	}
     //search through database for less than this time
     //check if timestamp is empty
+	console.log("TIME STAMP: ", timestamp);
+
+	if (request.body.timestamp) {
+		console.log("timestamp exists");
+		timestamp = timestamp * 1000;
+	} else {
+		timestamp = new Date().getTime();
+		console.log("default timestamp ", timestamp);
+	}
     if (timestamp) {
         if (!request.session.isnew && request.session.username != null) {
              db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
@@ -255,9 +277,12 @@ app.post("/search", function(request, response) {
                     var tweets = document.tweets;
                     var found = false;
                     var items = new Array();
+					console.log(tweets.length);
                     for (var i = 0; i < tweets.length; i++) {
+						console.log("curr ts: ", tweets[i].timestamp, "real ts: ", timestamp);
                         if (tweets[i].timestamp <= timestamp) {
-                            if (limit != "" && currentLimit > limit){
+							console.log("am i here");
+                            if (limit != "" && currentLimit >= limit){
                                 break;
                             }
                             currentLimit++;
@@ -265,7 +290,7 @@ app.post("/search", function(request, response) {
                             items.push(tweets[i]);
                         }
                     }
-                    
+                  	console.log(items.length); 
                     response.json({status:"OK", "items": items});
                     
                 }
@@ -280,4 +305,10 @@ app.post("/search", function(request, response) {
 });
         
 app.listen(1337);
+app.listen(1338);
+app.listen(1339);
+app.listen(1340);
+app.listen(1341);
+app.listen(1342);
+app.listen(1343);
 console.log("Server started");
