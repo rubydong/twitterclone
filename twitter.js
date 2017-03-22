@@ -166,7 +166,7 @@ app.get("/additem", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
-	console.log("IN ADDITEM POST");
+    console.log("IN ADDITEM POST");
     
     var content = request.body.content;
     //if not logged in error
@@ -194,7 +194,14 @@ app.post("/additem", function (request, response) {
                 if (error) {
                     response.json({ "status": "ERROR" });
                 } else {
-					console.log("success");
+                    var document = {
+                        "id": id,   
+                        "username": request.session.username,
+                        "content": content,
+                        "timestamp": timestamp
+                    };
+                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {});
+                    console.log("success");
                     response.json ({
                         status: "OK",
                         id: id,
@@ -214,29 +221,44 @@ app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
     if (!request.session.isNew) {
-        db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
+//        db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
+//            if (document) {
+//                var tweets = document.tweets;
+//                
+//                var found = false;
+//                for (var i = 0; i < tweets.length; i++) {
+//                    if (tweets[i].id == id) {
+//                        found = true;
+//                        response.json({
+//                            status: "OK", 
+//                            item: {
+//                                "id": tweets[i].id, 
+//                                "username": tweets[i].username,
+//                                "content": tweets[i].content,
+//                                "timestamp": tweets[i].timestamp
+//                            }
+//                        });
+//                        break;
+//                    }
+//                }
+//                if (!found) {
+//                    response.json({status: "error", error: "THIS IS AN INVALID ID"});
+//                }
+//            }
+//        });
+        db.collection("tweets").findOne( { "id": id }, function (error, document) {
             if (document) {
-                var tweets = document.tweets;
-                
-                var found = false;
-                for (var i = 0; i < tweets.length; i++) {
-                    if (tweets[i].id == id) {
-                        found = true;
-                        response.json({
-                            status: "OK", 
-                            item: {
-                                "id": tweets[i].id, 
-                                "username": tweets[i].username,
-                                "content": tweets[i].content,
-                                "timestamp": tweets[i].timestamp
-                            }
-                        });
-                        break;
+                response.json({
+                    status: "OK",
+                    item: {
+                        id: document.id,
+                        username: document.username,
+                        content: document.content,
+                        timestamp: document.timestamp
                     }
-                }
-                if (!found) {
-                    response.json({status: "error", error: "THIS IS AN INVALID ID"});
-                }
+                });
+            } else {
+                response.json( { status: "error", error: "THIS IS AN INVALID ID" });
             }
         });
     } else {
