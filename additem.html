@@ -5,24 +5,43 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
-        <form method="POST" action="/additem">
+        <form method="POST" action="/additem" id="additemForm">
             <h1>Tweet</h1>
             <textarea name="content" id="content"></textarea> <br>
-            Total word count: <span id="count">0</span> <br> Max: 140 <br>
+            Total word count: <span id="count">0</span> 
             <input type="submit" value="tweet" id="submit"> 
         </form>
 
         <script>
             $(document).ready(function(){    
+                $("#additemForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/additem",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            content: $("input[name='content'").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8", 
+                        
+                        
+                        success: function (data) {
+                           // window.location.href = "";
+                        }
+                    });
+                });
+                
                 $("#content").on('keyup', function() {
                     var wordcount = this.value.length;
                     $("#count").html(wordcount);
-                    if (wordcount > 140) {
-                        $("#submit").prop("disabled", true);
-                    } else {
-                        $("#submit").prop("disabled", false);
-                    }
+//                    if (wordcount > 140) {
+//                        $("#submit").prop("disabled", true);
+//                    } else {
+//                        $("#submit").prop("disabled", false);
+//                    }
                 });
+                
             });
         </script>
     </body>

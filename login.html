@@ -14,7 +14,7 @@
         
         <script>
             $(document).ready(function () {
-                $("#loginForm").submit(function (event) {
+                $("#loginForm").submit(function (event, jqXHR) {
                     event.preventDefault(); 
                     $.ajax({
                         "url": "/login",
@@ -24,11 +24,16 @@
                             password: $("input[name='password']").val()
                         }), 
                         "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8", 
-                        
-                        success: function (data) {
-                           // window.location.href = "additem.html";
-                        }
+                        "contentType": "application/json; charset=utf-8"
+//                        , 
+//                        
+//                        success: function (data, xhr) {
+//                            alert(xhr.statusText);
+//                            //window.location.href = "additem.html";
+//                            
+//                        }
+                    }).done(function(data) {
+                        alert(data.status);
                     });
                     
                 });
@@ -36,3 +41,4 @@
         </script>
     </body>
 </html>
+
