@@ -235,12 +235,12 @@ app.get("/item/:id", function (request, response) {
                     }
                 }
                 if (!found) {
-                    response.json({status: "ERROR", "Error": "THIS IS AN INVALID ID"});
+                    response.json({status: "error", error: "THIS IS AN INVALID ID"});
                 }
             }
         });
     } else {
-        response.json({status: "ERROR", "Error": "USER IS NOT LOGGED IN"});
+        response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
 });
 
