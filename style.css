@@ -32,7 +32,8 @@ textarea:focus {outline:0;}
 }
 
 .formContent {
-    margin-left: 30% !important;
+    display: block;
+    margin: 0 auto;
     width: 40%;
 }
 

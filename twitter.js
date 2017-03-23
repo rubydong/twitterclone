@@ -251,6 +251,33 @@ app.get("/item/:id", function (request, response) {
     }
 });
 
+
+app.post("/item", function (request, response) {
+    var id = request.body.itemId;
+    if (!request.session.isNew) {
+		console.log("id is ", id);
+        db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
+			if (error) console.log(error);
+			//console.log(document);
+            if (document) {
+                response.json({
+                    status: "OK",
+                    item: {
+                        id: document.id,
+                        username: document.username,
+                        content: document.content,
+                        timestamp: document.timestamp
+                    }
+                });
+            } else {
+                response.json( { status: "error", error: "THIS IS AN INVALID ID" });
+            }
+        });
+    } else {
+        response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+    }
+});
+
 app.get("/search", function(request, response) {
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
@@ -300,6 +327,9 @@ app.post("/search", function(request, response) {
     }
 });
         
+app.get("/home", function(request, response) {
+    response.sendFile(path.join(__dirname + "/home.html")); 
+});
 app.listen(1337);
 app.listen(1338);
 app.listen(1339);
