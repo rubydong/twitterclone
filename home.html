@@ -5,25 +5,148 @@
         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-        
+        <style>
+            #userInfo img {
+                padding: 5px;
+                border:1px solid #9E9E9E;
+                width: 200px;
+            }
+            
+            #userInfo {
+                margin-left: 5%;
+                float: left;
+                position: fixed;
+                width: 27%;
+            }
+            
+            #navigation {
+                margin: 0 auto;
+                margin-top: 2%;
+            }
+            
+            #tweetsInfo {
+                margin-left: 30%;
+                width: 40%;
+            }
+            
+        </style>
     </head>
     <body>
-        <form method="POST" action="/item" id="itemForm">
-            <h1>Home get your id</h1> <p>
+        
+        <div id="navigation">
+            <button type="submit" id="tweetClick" class="btn btn-default">Tweet</button>
+            <button type="submit" id="retrieveClick" class="btn btn-default">Retrieve</button>
+            <button type="submit" id="searchClick" class="btn btn-default">Search</button>
+            <button type="submit" class="btn btn-default" onclick ="window.location='logout'">Logout</button>    
+        </div>
+        
+        <div id="userInfo">
+            <h2>Twitter</h2>
+            <img src="img/cat.jpg" width="200px"> <br>
+            @ username <br>
+            1 follower <br>
+            1 following
+        </div>
+        
+        <div id="tweetsInfo">
+            
+            <!-- search -->
 
-            <div class="formContent">
-                <input type="text" placeholder="tweet id#" name="itemId">
-                
+            <form method="POST" action="/search" id="searchForm">
+                <h2>Search</h2> <p>           
+                <div class="formContent">
+                <input type="text" name="timestamp" placeholder="Timestamp">
+                <input type="text" name="limit" placeholder="Limit">
                 <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
-            </div>
+                </div>
+            </form>
+
+
+            <!--additem-->
+            <form method="POST" action="/additem" id="additemForm">
+                <h2>Tweet [additem]</h2>
+                <div class="formContent">
+                <textarea name="content" id="content"></textarea> <br>
+                Total word count: <span id="count">0</span> <br>
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Post</button>   
+                </div>
+            </form>
+
+            <!--item-->
+            <form method="POST" action="/item" id="itemForm">
+                <h2>Retrieve Tweet [item]</h2> <p>
+                <div class="formContent">
+                <input type="text" placeholder="tweet id#" name="itemId">
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+                </div>
+            </form>
+            <table id="searchTable"></table>
             
-            <div id="appendHere"></div>
-            
-        </form>
+            <div id="addInfoHere"></div>
+        </div>
         
         <script>
+
             $(document).ready(function () {
-                $("#itemForm").submit(function (event, jqXHR) {
+                $("#searchForm").hide();
+                $("#itemForm").hide();
+                
+                $("#searchClick").click(function (event) {
+                    $("#searchForm").show();  
+                    $("#itemForm").hide();
+                    $("#additemForm").hide();
+                    $("#addInfoHere").html("");
+                    $("#searchTable").show();
+                     return false;
+                });
+                
+                $("#tweetClick").click(function (event) {
+                    $("#searchForm").hide();  
+                    $("#itemForm").hide();
+                    $("#additemForm").show();
+                    $("#addInfoHere").html("");
+                    $("#searchTable").hide();
+                     return false;
+                });
+                
+                $("#retrieveClick").click(function (event) {
+                    $("#searchForm").hide();  
+                    $("#itemForm").show();
+                    $("#additemForm").hide();
+                    $("#addInfoHere").html("");
+                    $("#searchTable").hide();
+                     return false;
+                });
+                
+               
+                 $("#additemForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/additem",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            content: $("textarea[name='content'").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data){
+                        if (data.status == "OK") {
+                            var parsed = data;
+                            $("#addInfoHere").append("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]");
+                        }
+                        else {
+                            $("#addInfoHere").append("<p> <center>" + data.error);
+                        }
+                    });
+                });
+                
+                $("#content").on('keyup', function() {
+                    var wordcount = this.value.length;
+                    $("#count").html(wordcount);
+                });     
+                
+                
+                $("#itemForm").submit(function (event) {
                     event.preventDefault(); 
                     $.ajax({
                         "url": "/item",
@@ -34,17 +157,47 @@
                         "dataType": "json", 
                         "contentType": "application/json; charset=utf-8"
                     }).done(function(data) {
-                       
-                        if (data.status=="OK"){
-                            
-                            $("#appendHere").html("<p style='text-align: center'> Id:" + data.item.id + " Username: " + data.item.username + " Content: " + data.item.content + " Timestamp: " + data.item.timestamp);
-                        }
+                            if (data.status=="OK"){
+                                $("#addInfoHere").append("<p style='text-align: center'> Id:" + data.item.id + " Username: " + data.item.username + " Content: " + data.item.content + " Timestamp: " + data.item.timestamp);
+                            }
                         else 
-                            $("#appendHere").html("<p style='text-align:center'>Invalid Login, try again<br>");
+                            $("#addInfoHere").append("<p style='text-align:center'>Invalid Login, try again<br>");
                     });
                     
                 });
+                
+                
+                $("#searchForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/search",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            timestamp: $("input[name='timestamp'").val(), 
+                            limit: $("input[name='limit']").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data) {
+                        
+                        if (data.status == "OK"){
+                            var parsed = data;
+                            $("#searchTable").append("<tr> <th>Tweet Id</th><th>Username</th> <th>Content</th><th>Timestamp</th> </tr>");
+
+                            for (var i = 0; i < parsed.items.length; i++) {
+                                $("#searchTable").append("<tr><td>" + parsed.items[i].id + "</td><td> " + parsed.items[i].username + "</td><td> " + parsed.items[i].content + "</td><td>"+ parsed.items[i].timestamp + "</td></tr>");
+                            }
+                        } else {
+                            $("#addInfoHere").html("Please log in first");
+                        }
+                    });
+
+                });
+                
             });
+                
+                
+            
         </script>
     </body>
 </html>

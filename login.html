@@ -6,21 +6,30 @@
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         
-    </head>
-    <body>
-        <form method="POST" action="/login" id="loginForm">
-            <h1>Login</h1> <p>
+        <style>
 
-            <div class="formContent">
-                <input type="text" placeholder="Username" name="username">
-                <input type="password" placeholder="Password" name="password">
-                <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+        </style>
+    </head>
+    <body style="margin-top:10%">
+      <div id="entire">
+            <div id = "left">
+                <button type="submit" class="btn btn-default" onclick="window.location='login'">Login</button> <p>
+                <button type="submit" class="btn btn-default" onclick="window.location='adduser'">Adduser</button> <p>
+                <button type="submit" class="btn btn-default" onclick ="window.location='verify'">Verify</button> <p>
             </div>
-            
-            <div id="appendHere"></div>
-            
-        </form>
-        
+
+            <div id = "right" > 
+                <form method="POST" action="/login" id="loginForm">
+                    <h1>Login</h1> <p>
+                    <div class="formContent">
+                    <input type="text" placeholder="Username" name="username">
+                    <input type="password" placeholder="Password" name="password">
+                    <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+                    </div>
+                <div id="appendHere"></div>
+                </form>
+            </div>
+        </div>
         <script>
             $(document).ready(function () {
                 $("#loginForm").submit(function (event, jqXHR) {
