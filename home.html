@@ -29,6 +29,13 @@
                 width: 40%;
             }
             
+            .tweet{
+                background-color: white;
+                text-align: center;
+                margin: 10px;
+                padding: 5px;
+                border:1px solid #9E9E9E;
+            }
         </style>
     </head>
     <body>
@@ -80,7 +87,6 @@
                 <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
                 </div>
             </form>
-            <table id="searchTable"></table>
             
             <div id="addInfoHere"></div>
         </div>
@@ -96,7 +102,7 @@
                     $("#itemForm").hide();
                     $("#additemForm").hide();
                     $("#addInfoHere").html("");
-                    $("#searchTable").show();
+                    //$("#searchTable").show();
                      return false;
                 });
                 
@@ -105,7 +111,7 @@
                     $("#itemForm").hide();
                     $("#additemForm").show();
                     $("#addInfoHere").html("");
-                    $("#searchTable").hide();
+                    //$("#searchTable").hide();
                      return false;
                 });
                 
@@ -114,7 +120,7 @@
                     $("#itemForm").show();
                     $("#additemForm").hide();
                     $("#addInfoHere").html("");
-                    $("#searchTable").hide();
+                    //$("#searchTable").hide();
                      return false;
                 });
                 
@@ -131,8 +137,8 @@
                         "contentType": "application/json; charset=utf-8"
                     }).done(function(data){
                         if (data.status == "OK") {
-                            var parsed = data;
-                            $("#addInfoHere").append("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]");
+                            
+                            $("#addInfoHere").append("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
                         }
                         else {
                             $("#addInfoHere").append("<p> <center>" + data.error);
@@ -158,7 +164,7 @@
                         "contentType": "application/json; charset=utf-8"
                     }).done(function(data) {
                             if (data.status=="OK"){
-                                $("#addInfoHere").append("<p style='text-align: center'> Id:" + data.item.id + " Username: " + data.item.username + " Content: " + data.item.content + " Timestamp: " + data.item.timestamp);
+                                $("#addInfoHere").append("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
                             }
                         else 
                             $("#addInfoHere").append("<p style='text-align:center'>Invalid Login, try again<br>");
@@ -181,11 +187,8 @@
                     }).done(function(data) {
                         
                         if (data.status == "OK"){
-                            var parsed = data;
-                            $("#searchTable").append("<tr> <th>Tweet Id</th><th>Username</th> <th>Content</th><th>Timestamp</th> </tr>");
-
-                            for (var i = 0; i < parsed.items.length; i++) {
-                                $("#searchTable").append("<tr><td>" + parsed.items[i].id + "</td><td> " + parsed.items[i].username + "</td><td> " + parsed.items[i].content + "</td><td>"+ parsed.items[i].timestamp + "</td></tr>");
+                            for (var i = 0; i < data.items.length; i++) {
+                                $("#addInfoHere").append("<div class='tweet'> Id #" + data.items[i].id + " @" + data.items[i].username + " Timestamp [" + data.items[i].timestamp + "]<br>" + data.items[i].content + "</div>");
                             }
                         } else {
                             $("#addInfoHere").html("Please log in first");
