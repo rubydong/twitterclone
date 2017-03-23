@@ -200,7 +200,7 @@ app.post("/additem", function (request, response) {
                         "content": content,
                         "timestamp": timestamp
                     };
-                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {});
+                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}});
                     console.log("success");
                     response.json ({
                         status: "OK",
@@ -221,32 +221,10 @@ app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
     if (!request.session.isNew) {
-//        db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
-//            if (document) {
-//                var tweets = document.tweets;
-//                
-//                var found = false;
-//                for (var i = 0; i < tweets.length; i++) {
-//                    if (tweets[i].id == id) {
-//                        found = true;
-//                        response.json({
-//                            status: "OK", 
-//                            item: {
-//                                "id": tweets[i].id, 
-//                                "username": tweets[i].username,
-//                                "content": tweets[i].content,
-//                                "timestamp": tweets[i].timestamp
-//                            }
-//                        });
-//                        break;
-//                    }
-//                }
-//                if (!found) {
-//                    response.json({status: "error", error: "THIS IS AN INVALID ID"});
-//                }
-//            }
-//        });
-        db.collection("tweets").findOne( { "id": id }, function (error, document) {
+		console.log("id is ", id);
+        db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
+			if (error) console.log(error);
+			console.log(document);
             if (document) {
                 response.json({
                     status: "OK",
@@ -294,12 +272,37 @@ app.post("/search", function(request, response) {
 	}
     if (timestamp) {
         if (!request.session.isnew && request.session.username != null) {
-             db.collection("users").findOne( {"username": request.session.username}, { "tweets": 1 }, function (error, document) {
+
+			var items = new Array();
+			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
+				if (val) {
+				//console.log("in here");
+				if (currentLimit < limit) {
+
+					if (val.username == request.session.username) {
+							console.log("IN HERE BOYS");
+					}
+					console.log("pushing");
+					items.push(val);
+					//items.push({id:val.tweet_id,username:val.username,content:val.content,timestamp:val.timestamp});
+					currentLimit++;
+				}		
+				} else {
+				console.log(currentLimit);	
+
+				///console.log(JSON.stringify(items));
+				response.json({status:"OK", items:items});
+				}
+			});
+
+          /*    db.collection("users").find(function (error, document) {
                 if (document) {
+					var it = document.toArray();
+					console.log(it[0]);
                     var tweets = document.tweets;
                     var found = false;
                     var items = new Array();
-					console.log(tweets.length);
+					console.log(tweets);
                     for (var i = 0; i < tweets.length; i++) {
 						console.log("curr ts: ", tweets[i].timestamp, "real ts: ", timestamp);
                         if (tweets[i].timestamp <= timestamp) {
@@ -316,8 +319,9 @@ app.post("/search", function(request, response) {
                     response.json({status:"OK", "items": items});
                     
                 }
-            });
-
+           
+		*/
+			//response.json({status:"OK",items: items});
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }
