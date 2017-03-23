@@ -35,10 +35,8 @@
                     }).done(function(data){
                         //alert(data);
                         if (data.status == "OK") {
-//                            $("#pushTweet").html(JSON.stringify(data) + "<br> <a href='/additem'>Post another?</a>");
                             var parsed = data;
-                            //parsed.item.username
-                           $("#pushTweet").html("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]<br> <a href='/additem'>Post another?</a>");
+                            $("#pushTweet").html("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]<br> <a href='/additem'>Post another?</a>");
                         }
                         else {
                             $("#pushTweet").append("<p> <center>" + data.error);

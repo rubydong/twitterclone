@@ -281,8 +281,8 @@ app.post("/search", function(request, response) {
 				if (val) {
                     if (currentLimit < limit) {
 
-                        items.push(val);
-//                        items.push({id:val.tweet_id,username:val.username,content:val.content,timestamp:val.timestamp});
+                        //items.push(val);
+                        items.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp});
                         currentLimit++;
                     }		
 				} else {

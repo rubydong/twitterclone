@@ -6,6 +6,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
+    
     <body style="margin-top: 2%;">
          <form method="POST" action="/search" id="searchForm">
             <h1>Search</h1> <p>
@@ -17,8 +18,9 @@
             </div>
              
              <table id="searchTable">
-                 
              </table>
+             
+             <div id = "errorMsg"></div>
         </form>
         
     
@@ -37,12 +39,16 @@
                         "dataType": "json", 
                         "contentType": "application/json; charset=utf-8"
                     }).done(function(data) {
-                        var parsed = data;
                         
-                        $("#searchTable").append("<tr> <th>Tweet Id</th><th>Username</th> <th>Content</th><th>Timestamp</th> </tr>");
-                        
-                        for (var i = 0; i < parsed.items.length; i++) {
-                            $("#searchTable").append("<tr><td>" + parsed.items[i].id + "</td><td> " + parsed.items[i].username + "</td><td> " + parsed.items[i].content + "</td><td>"+ parsed.items[i].timestamp + "</td></tr>");
+                        if (data.status == "OK"){
+                            var parsed = data;
+                            $("#searchTable").append("<tr> <th>Tweet Id</th><th>Username</th> <th>Content</th><th>Timestamp</th> </tr>");
+
+                            for (var i = 0; i < parsed.items.length; i++) {
+                                $("#searchTable").append("<tr><td>" + parsed.items[i].id + "</td><td> " + parsed.items[i].username + "</td><td> " + parsed.items[i].content + "</td><td>"+ parsed.items[i].timestamp + "</td></tr>");
+                            }
+                        } else {
+                            $("#errorMsg").html("Please log in first");
                         }
                     });
 
