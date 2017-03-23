@@ -5089,10 +5089,6 @@ small {
   line-height: inherit;
 }
 
-.btn:focus, .btn-large:focus,
-.btn-floating:focus {
-  background-color: #1d7d74;
-}
 
 .btn, .btn-large {
   text-decoration: none;
@@ -5825,7 +5821,6 @@ select:focus {
 
 button:focus {
   outline: none;
-  background-color: #2ab7a9;
 }
 
 label {

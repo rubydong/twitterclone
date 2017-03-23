@@ -17,6 +17,8 @@
                 <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
             </div>
             
+            <div id="appendHere"></div>
+            
         </form>
         
         <script>
@@ -39,7 +41,7 @@
                             window.location = "additem";
                         }
                         else 
-                            $("#loginForm").append("Invalid Login, try again<br>");
+                            $("#appendHere").html("<p style='text-align:center'>Invalid Login, try again<br>");
                     });
                     
                 });

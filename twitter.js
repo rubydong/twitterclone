@@ -132,14 +132,11 @@ app.get("/logout", function(request, response) {
 });
 
 app.post("/logout", function (request, response) {
-//    if (request.session.isNew) {
-//        response.json({status: "ERROR", "Error": "ALREADY LOGGED OUT"});
-//    } else {
         console.log("IN LOGOUT POST");
         request.session = null;
         response.json({ "status": "OK" });
         response.redirect('/login');
-//    }
+
 });
 
 app.get("/verify", function (request, response) {
@@ -153,7 +150,7 @@ app.post("/verify", function (request, response) {
 
     if (email && key) {
         if ( key == emailkey || key == "abracadabra") {
-			console.log("IN HERE IN VERIFY");
+			//console.log("IN HERE IN VERIFY");
             response.json({"status": "OK"});
             db.collection("users").update(
                 { "email": email }, 
@@ -176,6 +173,7 @@ app.post("/additem", function (request, response) {
     console.log("IN ADDITEM POST");
     
     var content = request.body.content;
+    //console.log("what is the content" + content);
     //if not logged in error
     var timestamp = new Date().getTime();
     console.log(request.session);
@@ -258,7 +256,6 @@ app.get("/search", function(request, response) {
 });
 
 app.post("/search", function(request, response) {
-    console.log("IN SEARCH POST");
     
     var timestamp = request.body.timestamp;
     /* optional */
@@ -268,10 +265,9 @@ app.post("/search", function(request, response) {
 	if (request.body.limit) {
 		limit = parseInt(request.body.limit);
 	}
-    console.log("limit is... " + typeof(limit));
     
 	if (request.body.timestamp) {
-		console.log(" timestamp exists");
+		//console.log(" timestamp exists");
 		timestamp = timestamp * 1000;
 	} else {
 		timestamp = new Date().getTime();
@@ -283,27 +279,19 @@ app.post("/search", function(request, response) {
             var items = new Array();
 			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
 				if (val) {
-                    console.log("in here");
                     if (currentLimit < limit) {
 
-                        if (val.username == request.session.username) {
-                                console.log("IN HERE BOYS");
-                        }
-                        console.log("pushing");
                         items.push(val);
-                        console.log("val is... " + val);
-                        items.push({id:val.tweet_id,username:val.username,content:val.content,timestamp:val.timestamp});
+//                        items.push({id:val.tweet_id,username:val.username,content:val.content,timestamp:val.timestamp});
                         currentLimit++;
                     }		
 				} else {
-				console.log("current limit... " + currentLimit);	
-
-				///console.log(JSON.stringify(items));
-				response.json({status:"OK", items:items});
-//1489624645603
+				    response.json({status:"OK", items:items});
+                    //console.log("items are " + JSON.stringify(items));
 				}
 			});
-            console.log("items are..." + items);
+            
+            
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }

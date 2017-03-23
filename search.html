@@ -6,7 +6,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
-    <body>
+    <body style="margin-top: 2%;">
          <form method="POST" action="/search" id="searchForm">
             <h1>Search</h1> <p>
             
@@ -15,49 +15,41 @@
                 <input type="text" name="limit" placeholder="Limit">
                 <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
             </div>
+             
+             <table id="searchTable">
+                 
+             </table>
         </form>
         
+    
+        <script>    
             
-        
-        <div ng-app="myApp" ng-controller="myCtrl">
-            <div ng-model="searchResults">
-                <span ng-repeat="x in id">
-                    {{x.id}} <br>
-                </span>
-            </div>
-        </div>
-        <script>
-            
-            var app = angular.module('myApp', []);
-            
-            app.controller('myCtrl', function($scope) {
-                var items = "";
-                $(document).ready(function () {
-                    $("#searchForm").submit(function (event, jqXHR) {
-                        event.preventDefault(); 
-                        $.ajax({
-                            "url": "/search",
-                            "type":"POST",
-                            "data": JSON.stringify({
-                                timestamp: $("input[name='timestamp'").val(), 
-                                limit: $("input[name='limit']").val()
-                            }), 
-                            "dataType": "json", 
-                            "contentType": "application/json; charset=utf-8"
-                        }).done(function(data, responseText, header) {
-                            var parsedJson = $.parseJSON(JSON.stringify(header));
-                            console.log(parsedJson.responseText);
-                            var parsed2 = $.parseJSON(parsedJson.responseText);
-                            var items = JSON.stringify(parsed2.items);
-                           
-                        });
-
+            $(document).ready(function () {
+                $("#searchForm").submit(function (event, jqXHR) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        "url": "/search",
+                        "type":"POST",
+                        "data": JSON.stringify({
+                            timestamp: $("input[name='timestamp'").val(), 
+                            limit: $("input[name='limit']").val()
+                        }), 
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data) {
+                        var parsed = data;
+                        
+                        $("#searchTable").append("<tr> <th>Tweet Id</th><th>Username</th> <th>Content</th><th>Timestamp</th> </tr>");
+                        
+                        for (var i = 0; i < parsed.items.length; i++) {
+                            $("#searchTable").append("<tr><td>" + parsed.items[i].id + "</td><td> " + parsed.items[i].username + "</td><td> " + parsed.items[i].content + "</td><td>"+ parsed.items[i].timestamp + "</td></tr>");
+                        }
                     });
+
                 });
-                
-                 $scope.items = items; 
             });
-            
+
+                 
             
         </script>
     </body>

@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans');
 body {
     font-family: Open Sans !important;
-    text-align: center;
+    text-align: center !important;
     margin-top: 10%;
     background-color: #F0F3F5;
     color: #474747;
@@ -46,3 +46,15 @@ button:hover, button:active{ /*#26A69A*/
   color: #8F8F8F !important;
 }
 
+#searchTable {
+    margin-top: 5%;
+    width: 50%;
+    margin-left: 25%;
+    text-align: center;
+    border:1px solid #9E9E9E;
+    border-radius: 5px;
+}
+
+#searchTable td, th {
+    border:1px solid #9E9E9E;
+}

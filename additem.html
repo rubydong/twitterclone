@@ -28,7 +28,7 @@
                         "url": "/additem",
                         "type":"POST",
                         "data": JSON.stringify({
-                            content: $("input[name='content'").val()
+                            content: $("textarea[name='content'").val()
                         }), 
                         "dataType": "json", 
                         "contentType": "application/json; charset=utf-8"
@@ -36,12 +36,12 @@
                         //alert(data);
                         if (data.status == "OK") {
 //                            $("#pushTweet").html(JSON.stringify(data) + "<br> <a href='/additem'>Post another?</a>");
-                            var parsed = $.parseJSON(JSON.stringify(data));
+                            var parsed = data;
                             //parsed.item.username
                            $("#pushTweet").html("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]<br> <a href='/additem'>Post another?</a>");
                         }
                         else {
-                            $("#pushTweet").append("<p> <center>" + JSON.stringify(data));
+                            $("#pushTweet").append("<p> <center>" + data.error);
                         }
                     });
                 });
