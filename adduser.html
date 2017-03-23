@@ -1,16 +1,23 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
         <form method="POST" action="/adduser" id="adduserForm">
-            <h1>ADD USER </h1><p>
-            Username: <input type="text" name="username"> <br>
-            Email: <input type="text" name="email"> <br>
-            Password: <input type="password" name="password"><br>
-            <input type="submit">
+            <h1>Register </h1><p>
+            
+            
+            <div class="formContent">
+                <input type="text" placeholder="Username" name="username">
+                <input type="text" placeholder="Email" name="email">
+                <input type="password" placeholder="Password" name="password">
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+            </div>
+            
+            
         </form>
         
          <script>
@@ -26,11 +33,12 @@
                             password: $("input[name='password']").val()
                         }), 
                         "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8", 
-                        
-                        success: function (data) {
-                            window.location.href = "verify.html";
-                        }
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data) {
+                        if (data.status=="OK")
+                            window.location.href = "verify"; 
+                        else 
+                            $("#adduserForm").append("Username/Email already exists, try again<br>");
                     });
                     
                 });

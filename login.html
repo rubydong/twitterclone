@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html>
     <head>
+        
+        <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        
     </head>
     <body>
         <form method="POST" action="/login" id="loginForm">
             <h1>Login</h1> <p>
-            Username: <input type="text" name="username"> <br>
-            Password: <input type="password" name="password"> <br>
-            <input type="submit">
+
+            <div class="formContent">
+                <input type="text" placeholder="Username" name="username">
+                <input type="password" placeholder="Password" name="password">
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+            </div>
+            
         </form>
         
         <script>
@@ -25,15 +32,14 @@
                         }), 
                         "dataType": "json", 
                         "contentType": "application/json; charset=utf-8"
-//                        , 
-//                        
-//                        success: function (data, xhr) {
-//                            alert(xhr.statusText);
-//                            //window.location.href = "additem.html";
-//                            
-//                        }
-                    }).done(function(data) {
-                        alert(data.status);
+                    }).done(function(data, responseText, header) {
+                        var parsedJson = $.parseJSON(JSON.stringify(header));
+                        console.log(parsedJson.responseText);
+                        if (data.status=="OK"){
+                            window.location = "additem";
+                        }
+                        else 
+                            $("#loginForm").append("Invalid Login, try again<br>");
                     });
                     
                 });

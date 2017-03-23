@@ -1,15 +1,23 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     </head>
     <body>
+        
         <form method="POST" action="/additem" id="additemForm">
-            <h1>Tweet</h1>
-            <textarea name="content" id="content"></textarea> <br>
-            Total word count: <span id="count">0</span> 
-            <input type="submit" value="tweet" id="submit"> 
+            <div id="formContent">
+                <h1>Tweet</h1>
+                
+                <div id="pushTweet">
+                <textarea name="content" id="content"></textarea> <br>
+                Total word count: <span id="count">0</span> <br>
+
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Tweet</button>
+                </div>
+            </div>
         </form>
 
         <script>
@@ -23,11 +31,17 @@
                             content: $("input[name='content'").val()
                         }), 
                         "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8", 
-                        
-                        
-                        success: function (data) {
-                           // window.location.href = "";
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data){
+                        //alert(data);
+                        if (data.status == "OK") {
+//                            $("#pushTweet").html(JSON.stringify(data) + "<br> <a href='/additem'>Post another?</a>");
+                            var parsed = $.parseJSON(JSON.stringify(data));
+                            //parsed.item.username
+                           $("#pushTweet").html("<br>User " + parsed.item.username + " posted tweet #" + parsed.item.id + " at this time - [" + parsed.item.timestamp + "]<br> <a href='/additem'>Post another?</a>");
+                        }
+                        else {
+                            $("#pushTweet").append("<p> <center>" + JSON.stringify(data));
                         }
                     });
                 });
@@ -35,13 +49,7 @@
                 $("#content").on('keyup', function() {
                     var wordcount = this.value.length;
                     $("#count").html(wordcount);
-//                    if (wordcount > 140) {
-//                        $("#submit").prop("disabled", true);
-//                    } else {
-//                        $("#submit").prop("disabled", false);
-//                    }
-                });
-                
+                });     
             });
         </script>
     </body>
