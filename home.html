@@ -175,6 +175,7 @@
                 
                 $("#searchForm").submit(function (event) {
                     event.preventDefault(); 
+                    $("#addInfoHere").html("");
                     $.ajax({
                         "url": "/search",
                         "type":"POST",
