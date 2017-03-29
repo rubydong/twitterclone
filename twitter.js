@@ -251,6 +251,41 @@ app.get("/item/:id", function (request, response) {
     }
 });
 
+app.delete("/item/:id", function (request, response) {
+    var id = request.params.id;
+    console.log("param id is..." + id);
+     if (!request.session.isNew) {
+		console.log("id is ", id);
+        db.collection("users").update(
+            {"username": request.session.username},
+            {
+              $pull: {
+                    "tweets": {
+                          "id": parseInt(id)
+                    }
+                } 
+            },
+            function (error, result) {
+                if (error) {
+                    response.json({ "status": "ERROR" });
+                } else {
+                    db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
+                        if (error) console.log(error);
+                        console.log(document);
+                        if (document) {
+                            db.collection("tweets").remove({"id": parseInt(request.params.id)}, 1);
+                            response.json({status: "SUCCESS"});
+                        } else {
+                            response.json({status: "FAILURE"});
+                        }
+                    });
+                }
+            }
+        );
+    } else {
+        response.json({status: "FAILURE"});
+    }
+});
 
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
@@ -330,11 +365,6 @@ app.post("/search", function(request, response) {
 app.get("/home", function(request, response) {
     response.sendFile(path.join(__dirname + "/home.html")); 
 });
+
 app.listen(1337);
-app.listen(1338);
-app.listen(1339);
-app.listen(1340);
-app.listen(1341);
-app.listen(1342);
-app.listen(1343);
 console.log("Server started");
