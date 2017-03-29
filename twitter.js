@@ -78,13 +78,15 @@ app.post("/adduser", function (request, response) {
                         response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
                     } else {
                         //username and email does not exist do this
-                        sendEmail (email, emailkey);
+                        //sendEmail (email, emailkey);
                         var document = {
                             "username": request.body.username,
                             "password": request.body.password,
                             "email": email,
                             "verified": emailkey, 
-                            "tweets": []
+                            "tweets": [],
+                            "followers": [],
+                            "following": []
                         }; 
                         db.collection("users").insert(document, {w: 1}, function(error, result) {});
                         response.json({"status": "OK"});
@@ -132,6 +134,7 @@ app.get("/logout", function(request, response) {
 });
 
 app.post("/logout", function (request, response) {
+    
         console.log("IN LOGOUT POST");
         request.session = null;
         response.json({ "status": "OK" });
@@ -144,6 +147,7 @@ app.get("/verify", function (request, response) {
 });
 
 app.post("/verify", function (request, response) {
+    
 	console.log("IN VERIFY POST");
     var email = request.body.email;
     var key = request.body.key;
@@ -170,6 +174,7 @@ app.get("/additem", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
+    
     console.log("IN ADDITEM POST");
     
     var content = request.body.content;
@@ -252,6 +257,7 @@ app.get("/item/:id", function (request, response) {
 });
 
 app.delete("/item/:id", function (request, response) {
+
     var id = request.params.id;
     console.log("param id is..." + id);
      if (!request.session.isNew) {
@@ -364,6 +370,73 @@ app.post("/search", function(request, response) {
         
 app.get("/home", function(request, response) {
     response.sendFile(path.join(__dirname + "/home.html")); 
+});
+
+app.get("/follow", function (request, response) {
+    response.sendFile(path.join(__dirname + "/follow.html")); 
+});
+
+app.post("/follow", function (request, response) {
+    console.log("IN ADDITEM POST");
+
+    var followbool = request.body.followbool;
+    var currentUser = request.session.username;
+    var otherUser = request.body.username; //other user to folllow or unfollow
+    
+    if (!request.session.isnew && request.session.username != null) {
+        //follow
+        if (followbool == "true") {
+            console.log("following");
+            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                
+                if (error) {
+                    response.json({status: "error", error: error});
+                }
+                else if (document == null) {
+                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
+                } else {
+                    db.collection("users").update(
+                        {"username": otherUser},
+                        { "$push": { "followers": {"username": currentUser} } }
+                    );
+                    
+                    db.collection("users").update(
+                            {"username": currentUser}, 
+                            { $push: { "following": {"username": otherUser} } }
+                    );
+                    response.json({status: "OK"});   
+                }
+            });
+        //unfollow
+        } else if (followbool == "false"){
+            
+            console.log("attempt at unfollowing");
+            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                if (error) {
+                    response.json({status: "error", error: error});
+                }
+                else if (document == null) {
+                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
+                } else {
+                    db.collection("users").update(
+                        {"username": otherUser},
+                        { $pull: { "followers": {"username": currentUser} } }
+                    );
+                    
+                    db.collection("users").update(
+                            {"username": currentUser}, 
+                            { "$pull": { "following": {"username": otherUser} } }
+                    );
+                    response.json({status: "OK"});   
+                }
+            });
+        } else {
+            response.json({status: "error", error: "USER DID NOT ENTER CORRECT PARAMETERS"});
+        }
+    } else {
+        response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
+    }
+    
 });
 
 app.listen(1337);

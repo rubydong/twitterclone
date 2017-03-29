@@ -85,3 +85,39 @@ button:hover, button:active{ /*#26A69A*/
     color: #FFF !important;
     
 }
+
+#userInfo img {
+    padding: 5px;
+    border:1px solid #9E9E9E;
+    width: 200px;
+}
+
+#userInfo {
+    margin-left: 5%;
+    float: left;
+    position: fixed;
+    width: 27%;
+}
+
+#navigation {
+    margin: 0 auto;
+    margin-top: 2%;
+}
+
+#tweetsInfo {
+    margin-left: 30%;
+    width: 40%;
+}
+
+.tweet{
+    background-color: white;
+    text-align: center;
+    margin: 10px;
+    padding: 5px;
+    border:1px solid #9E9E9E;
+}
+
+#follow {
+    width: 50%;
+    margin: 0 auto;
+}
