@@ -78,7 +78,7 @@ app.post("/adduser", function (request, response) {
                         response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
                     } else {
                         //username and email does not exist do this
-                        //sendEmail (email, emailkey);
+                        sendEmail (email, emailkey);
                         var document = {
                             "username": request.body.username,
                             "password": request.body.password,
