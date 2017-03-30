@@ -217,7 +217,10 @@ app.post("/additem", function (request, response) {
     console.log(request.session);
     console.log(request.session.username);
 	console.log("cookies",request.cookies);
-	if (validSession(request.cookies.key) == true) {
+
+	var state = validSession(request.cookies.key);
+	console.log("state is", state);
+	if (state == true) {
     //if (!request.session.isnew && request.session.username != null) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
