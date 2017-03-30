@@ -132,10 +132,7 @@ app.post("/login", function (request, response) {
 });
 
 app.get("/logout", function(request, response) {
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/master
     console.log("IN LOGOUT GET");
     request.session = null;
 	console.log(request.cookies.key);
@@ -346,50 +343,46 @@ app.post("/item", function (request, response) {
 	});
 });
 
-app.get("/search", function(request, response) {
-    
+app.get("/search", function(request, response) {   
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
 
 app.post("/search", function(request, response) {
-    var timestamp = request.body.timestamp;
-    /* optional */
-    var limit = request.body.limit;
-    var currentLimit = 0;
-	limit = 25;
-	if (request.body.limit) {
-		limit = parseInt(request.body.limit);
-	}
+    //var currentLimit = 0;
+    var timestamp = new Date().getTime(); //default current time
+	var limit = 25; //default 25
+	var query = ''; 
+    var username = request.body.username;
+    var following = "true"; //default true
     
-	if (request.body.timestamp) {
-		timestamp = timestamp * 1000;
-	} else {
-		timestamp = new Date().getTime();
-	}
-    if (timestamp) {
-		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-			if (doc) {	
-            var items = new Array();
-			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
-				if (val) {
-                    if (currentLimit < limit) {
-                        items.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp});
-                        currentLimit++;
-                    }		
-				} else {
-				    response.json({status:"OK", items:items});
-
-				}
-			});
-            
-            
+    if (request.body.limit) { limit = parseInt(request.body.limit); }
+	if (request.body.timestamp) { timestamp = timestamp * 1000; }
+    if (request.body.query) {query = request.body.query;}
+	if (request.body.following) { following = request.body.following; }
+    
+    console.log(timestamp + " " + limit);
+    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+        if (doc) {
+            var tweetsArr = new Array();
+            //if not username...
+            if (following == "true") {
+                //traverse through user's following's list
+                //for each user get their tweets 
+                // traverse through user's following's tweets
+            } else {
+                //traverse through tweets data base
+                db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
+                    if (val) 
+                       tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
+                    else 
+                        response.json({status:"OK", items:tweetsArr});
+                });
+            }
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }
-		});
-    } else {
-        response.json({status: "ERROR", "Error": "TIMESTAMP IS EMPTY"});
-    }
+    });
+
 });
         
 app.get("/home", function(request, response) {
@@ -403,7 +396,6 @@ app.get("/follow", function (request, response) {
 app.post("/follow", function (request, response) {
     
     var followbool = request.body.followbool;
-<<<<<<< HEAD
     
    
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -473,28 +465,6 @@ app.get("/user/:username", function (request, response) {
             db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
                 if (doc) { 
                     console.log("the username is " + username);
-=======
-    var currentUser = request.session.key;
-    var otherUser = request.body.username; //other user to folllow or unfollow
-   
-	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		if (doc) { 
-        //follow
-        if (followbool == "true") {
-           
-            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
-                
-                if (error) {
-                    response.json({status: "error", error: error});
-                }
-                else if (document == null) {
-                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
-                } else {
-                    db.collection("users").update(
-                        {"username": otherUser},
-                        { $addToSet: { "followers": {"username": currentUser}}}
-                    );
->>>>>>> origin/master
                     
                     var following = document.following;
                     var followingCount = Object.keys(following).length;
@@ -514,7 +484,6 @@ app.get("/user/:username", function (request, response) {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
             });
-<<<<<<< HEAD
         }
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
@@ -537,16 +506,6 @@ app.get("/user/:username/followers", function (request, response) {
                         status: "OK", 
                         users: followers
                     });
-=======
-        //unfollow
-        } else if (followbool == "false"){
-            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
-                if (error) {
-                    response.json({status: "error", error: error});
-                }
-                else if (document == null) {
-                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
->>>>>>> origin/master
                 } else {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
@@ -577,18 +536,10 @@ app.get("/user/:username/following", function (request, response) {
                 }
             });
         }
-<<<<<<< HEAD
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
         }
     }); 
-=======
-    } else {
-        response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
-    }
-	});
-    
->>>>>>> origin/master
 });
 
 app.listen(1337);
