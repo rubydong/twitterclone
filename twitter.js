@@ -54,6 +54,22 @@ function sendEmail(email, key) {
         console.log('Message sent');
     });
 }
+
+function validSession(username) {
+	db.collection("sessions").findOne( {"sessionkey": username}, {"sessionkey": 1}, function (error, doc) {
+		if (error) {
+			console.log(error);
+			return false;
+		} else if (doc) {
+			console.log("found", doc.sessionkey);
+			return true;
+		} else {
+			console.log("stuff")
+			return false;
+		}
+	});
+
+}
          
 app.post("/adduser", function (request, response) {
 	
@@ -113,8 +129,13 @@ app.post("/login", function (request, response) {
         var username = request.body.username;
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
-                //sets the cookie 
-                request.session.username = username;
+                //sets the cookiea
+				db.collection("users").insert(document, {w: 1}, function(error, result) {});
+
+				db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {});
+				
+				res.cookie('key', username);
+                //request.session.username = username;
                 response.json({"status": "OK"});
             } else {
                 response.json({"status":"ERROR", "Error": "INVALID LOGIN"});
@@ -130,6 +151,8 @@ app.post("/login", function (request, response) {
 app.get("/logout", function(request, response) {
     console.log("IN LOGOUT POST");
     request.session = null;
+	console.log(request.cookies.key);
+	db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
     response.redirect('/login');
 });
 
@@ -190,7 +213,8 @@ app.post("/additem", function (request, response) {
     var timestamp = new Date().getTime();
     console.log(request.session);
     console.log(request.session.username);
-    if (!request.session.isnew && request.session.username != null) {
+	if (validSession(request.cookies.key) {
+    //if (!request.session.isnew && request.session.username != null) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
@@ -238,7 +262,8 @@ app.post("/additem", function (request, response) {
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
-    if (!request.session.isNew) {
+	if (validSession(request.cookies.key) {
+    //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
@@ -265,7 +290,8 @@ app.get("/item/:id", function (request, response) {
 app.delete("/item/:id", function (request, response) {
 
     var id = request.params.id;
-     if (!request.session.isNew) {
+	if (validSession(request.cookies.key) {
+     //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("users").update(
             {"username": request.session.username},
@@ -300,7 +326,8 @@ app.delete("/item/:id", function (request, response) {
 
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-    if (!request.session.isNew) {
+if (validSession(request.cookies.key) {
+    //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
 			if (error) { console.log(error); }
@@ -345,7 +372,8 @@ app.post("/search", function(request, response) {
 		timestamp = new Date().getTime();
 	}
     if (timestamp) {
-        if (!request.session.isnew && request.session.username != null) {
+		if (validSession(request.cookies.key) {
+        //if (!request.session.isnew && request.session.username != null) {
 			
             var items = new Array();
 			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
@@ -383,7 +411,8 @@ app.post("/follow", function (request, response) {
     var currentUser = request.session.username;
     var otherUser = request.body.username; //other user to folllow or unfollow
     
-   if (!request.session.isnew && request.session.username != null) {
+	if (validSession(request.cookies.key) {
+   //if (!request.session.isnew && request.session.username != null) {
         //follow
         if (followbool == "true") {
            
