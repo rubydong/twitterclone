@@ -218,10 +218,8 @@ app.post("/additem", function (request, response) {
     console.log(request.session.username);
 	console.log("cookies",request.cookies);
 
-	var state = validSession(request.cookies.key);
-	console.log("state is", state);
 
-	db.collection("sessions").findOne( {"sessionkey": username}, {"sessionkey": 1}, function (error, doc) {
+	db.collection("sessions").findOne( {"sessionkey": requeset.cookies.key}, {"sessionkey": 1}, function (error, doc) {
     //if (!request.session.isnew && request.session.username != null) {
 
 		if (doc) {
