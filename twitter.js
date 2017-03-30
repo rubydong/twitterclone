@@ -219,7 +219,7 @@ app.post("/additem", function (request, response) {
 	console.log("cookies",request.cookies);
 
 
-	db.collection("sessions").findOne( {"sessionkey": requeset.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
     //if (!request.session.isnew && request.session.username != null) {
 
 		if (doc) {
