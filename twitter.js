@@ -17,7 +17,7 @@ app.use(cookieSession({
 
 var emailKey = ""; //For email verification
 
-MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
+MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?readPreference=secondary", function (error, database) {
     
     if (error) {
         return console.dir(error);
