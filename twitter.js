@@ -220,8 +220,11 @@ app.post("/additem", function (request, response) {
 
 	var state = validSession(request.cookies.key);
 	console.log("state is", state);
-	if (state == true) {
+
+	db.collection("sessions").findOne( {"sessionkey": username}, {"sessionkey": 1}, function (error, doc) {
     //if (!request.session.isnew && request.session.username != null) {
+
+		if (doc) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
@@ -263,6 +266,7 @@ app.post("/additem", function (request, response) {
             {status: "error", error: "USER IS NOT LOGGED IN"}
         );
     }
+	});
 	console.log("EXITED ADDITEM");
 });
 
