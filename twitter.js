@@ -4,21 +4,22 @@ var app = express();
 var path = require("path");
 var bodyParser = require("body-parser");
 var nodemailer = require("nodemailer");
+var cp = require("cookie-parser");
 var MongoClient = require("mongodb").MongoClient;
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
+app.use(cp());
 app.set("trust proxy", 1); //Trust first proxy
 app.use(cookieSession({
     name: "session",
     keys: [(Math.random() + 1).toString(36).substring(7)]
 }));
 
-//var emailKey = ""; //For email verification
 
-MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
-    
+//MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
+MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     if (error) {
         return console.dir(error);
     }
@@ -56,7 +57,6 @@ function sendEmail(email, key) {
 }
          
 app.post("/adduser", function (request, response) {
-	
     
     var username = request.body.username;
     var password = request.body.password;
@@ -104,7 +104,6 @@ app.get("/login", function (request, response) {
 });
 
 app.post("/login", function (request, response) {
-	
     var username = request.body.username;
     var password = request.body.password;
     
@@ -113,8 +112,13 @@ app.post("/login", function (request, response) {
         var username = request.body.username;
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
-                //sets the cookie 
-                request.session.username = username;
+                //sets the cookiea
+				db.collection("users").insert(document, {w: 1}, function(error, result) {});
+
+				db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {});
+				
+				response.cookie('key', username);
+                //request.session.username = username;
                 response.json({"status": "OK"});
             } else {
                 response.json({"status":"ERROR", "Error": "INVALID LOGIN"});
@@ -128,15 +132,22 @@ app.post("/login", function (request, response) {
 });
 
 app.get("/logout", function(request, response) {
-    console.log("IN LOGOUT POST");
+
+    console.log("IN LOGOUT GET");
     request.session = null;
+	console.log(request.cookies.key);
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+		response.clearCookie("key");
+		console.log(request.cookies.key);
     response.redirect('/login');
 });
 
 app.post("/logout", function (request, response) {
-    
         console.log("IN LOGOUT POST");
         request.session = null;
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+		response.clearCookie("key");
+		console.log(request.cookies.key);
         response.json({ "status": "OK" });
         response.redirect('/login');
 
@@ -188,19 +199,20 @@ app.post("/additem", function (request, response) {
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
-    console.log(request.session);
-    console.log(request.session.username);
-    if (!request.session.isnew && request.session.username != null) {
+	console.log("session key:",request.cookies.key);
+
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
         db.collection("users").update(
-            {"username": request.session.username},
+            {"username": request.cookies.key},
             {
               $push: {
                     "tweets": {
                           "id": id,   
-                          "username": request.session.username,
+                          "username": request.cookies.key,
                           "content": content,
                           "timestamp": timestamp
                           
@@ -213,7 +225,7 @@ app.post("/additem", function (request, response) {
                 } else {
                     var document = {
                         "id": id,   
-                        "username": request.session.username,
+                        "username": request.cookies.key,
                         "content": content,
                         "timestamp": timestamp
                     };
@@ -232,13 +244,15 @@ app.post("/additem", function (request, response) {
             {status: "error", error: "USER IS NOT LOGGED IN"}
         );
     }
+	});
 	console.log("EXITED ADDITEM");
 });
 
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
-    if (!request.session.isNew) {
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
@@ -260,15 +274,17 @@ app.get("/item/:id", function (request, response) {
     } else {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
+	});
 });
 
 app.delete("/item/:id", function (request, response) {
-
+    
     var id = request.params.id;
-     if (!request.session.isNew) {
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("users").update(
-            {"username": request.session.username},
+            {"username": request.session.key},
             {
               $pull: {
                     "tweets": {
@@ -296,11 +312,13 @@ app.delete("/item/:id", function (request, response) {
     } else {
         response.json({status: "FAILURE"});
     }
+	});
 });
 
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-    if (!request.session.isNew) {
+		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
 			if (error) { console.log(error); }
@@ -322,14 +340,15 @@ app.post("/item", function (request, response) {
     } else {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
+	});
 });
 
 app.get("/search", function(request, response) {
+    
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
 
 app.post("/search", function(request, response) {
-    
     var timestamp = request.body.timestamp;
     /* optional */
     var limit = request.body.limit;
@@ -345,8 +364,8 @@ app.post("/search", function(request, response) {
 		timestamp = new Date().getTime();
 	}
     if (timestamp) {
-        if (!request.session.isnew && request.session.username != null) {
-			
+		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+			if (doc) {	
             var items = new Array();
 			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
 				if (val) {
@@ -364,6 +383,7 @@ app.post("/search", function(request, response) {
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }
+		});
     } else {
         response.json({status: "ERROR", "Error": "TIMESTAMP IS EMPTY"});
     }
@@ -372,72 +392,158 @@ app.post("/search", function(request, response) {
 app.get("/home", function(request, response) {
     response.sendFile(path.join(__dirname + "/home.html")); 
 });
-
+                                       
 app.get("/follow", function (request, response) {
     response.sendFile(path.join(__dirname + "/follow.html")); 
 });
 
 app.post("/follow", function (request, response) {
-   
+    
     var followbool = request.body.followbool;
-    var currentUser = request.session.username;
-    var otherUser = request.body.username; //other user to folllow or unfollow
     
-   if (!request.session.isnew && request.session.username != null) {
-        //follow
-        if (followbool == "true") {
-           
-            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
-                
-                if (error) {
-                    response.json({status: "error", error: error});
-                }
-                else if (document == null) {
-                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
-                } else {
-                    db.collection("users").update(
-                        {"username": otherUser},
-                        { $addToSet: { "followers": {"username": currentUser}}}
-                    );
-                    
-                    db.collection("users").update(
-                        {"username": currentUser}, 
-                        { $addToSet: { "following": {"username": otherUser}}}
-                            
-                    );
-                    response.json({status: "OK"});   
-                }
-            });
-        //unfollow
-        } else if (followbool == "false"){
-            
-          
-            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
-                if (error) {
-                    response.json({status: "error", error: error});
-                }
-                else if (document == null) {
-                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
-                } else {
-                    db.collection("users").update(
-                        {"username": otherUser},
-                        { $pull: { "followers": {"username": currentUser} } }
-                    );
-                    
-                    db.collection("users").update(
-                        {"username": currentUser}, 
-                        { $pull: { "following": {"username": otherUser} } }
-                    );
-                    response.json({status: "OK"});   
-                }
-            });
+   
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) { 
+        
+            var currentUser = request.cookies.key;
+            var otherUser = request.body.username; //other user to folllow or unfollow
+            //follow
+            if (followbool == "true") {
+
+                db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+
+                    if (error) {
+                        response.json({status: "error", error: error});
+                    }
+                    else if (document == null) {
+                        response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
+                    } else {
+                        db.collection("users").update(
+                            {"username": otherUser},
+                            { $addToSet: { "followers": currentUser}}
+                        );
+
+                        db.collection("users").update(
+                            {"username": currentUser}, 
+                            { $addToSet: { "following":otherUser}}
+
+                        );
+                        response.json({status: "OK"});   
+                    }
+                });
+            //unfollow
+            } else if (followbool == "false"){
+                db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                    if (error) {
+                        response.json({status: "error", error: error});
+                    }
+                    else if (document == null) {
+                        response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
+                    } else {
+                        db.collection("users").update(
+                            {"username": otherUser},
+                            { $pull: { "followers": currentUser} } 
+                        );
+
+                        db.collection("users").update(
+                            {"username": currentUser}, 
+                            { $pull: { "following": otherUser} } 
+                        );
+                        response.json({status: "OK"});   
+                    }
+                });
+            } else {
+                response.json({status: "error", error: "USER DID NOT ENTER CORRECT PARAMETERS"});
+            }
         } else {
-            response.json({status: "error", error: "USER DID NOT ENTER CORRECT PARAMETERS"});
+            response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-    } else {
-        response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
-    }
+	});
     
+});
+                                       
+app.get("/user/:username", function (request, response) {
+    var username = request.params.username;
+    db.collection("users").findOne({"username": username}, function (error, document) {
+        if (document) {
+            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+                if (doc) { 
+                    console.log("the username is " + username);
+                    
+                    var following = document.following;
+                    var followingCount = Object.keys(following).length;
+                    
+                    var followers = document.followers;
+                    var followersCount = Object.keys(followers).length;
+                    
+                    response.json({
+                        status: "OK", 
+                        user: {
+                            email: document.email,
+                            followers: followersCount,
+                            following: followingCount
+                        }
+                    });
+                } else {
+                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                }
+            });
+        }
+        else {
+            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
+        }
+    }); 
+});
+
+app.get("/user/:username/followers", function (request, response) {
+    
+    var username = request.params.username;
+    db.collection("users").findOne({"username": username}, function (error, document) {
+        if (document) {
+            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+                if (doc) { 
+                    console.log("the username is " + username);
+                    
+                    var followers = document.followers;
+                    
+                    response.json({
+                        status: "OK", 
+                        users: followers
+                    });
+                } else {
+                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                }
+            });
+        }
+        else {
+            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
+        }
+    }); 
+});
+
+app.get("/user/:username/following", function (request, response) {
+    var username = request.params.username;
+    db.collection("users").findOne({"username": username}, function (error, document) {
+        if (document) {
+            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+                if (doc) { 
+                    console.log("the username is " + username);
+                    
+                    var following = document.following;
+                    
+                    response.json({
+                        status: "OK", 
+                        users: following
+                    });
+                } else {
+                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                }
+            });
+        }
+        else {
+            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
+        }
+    }); 
 });
 
 app.listen(1337);
