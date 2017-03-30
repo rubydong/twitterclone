@@ -15,7 +15,7 @@ app.use(cookieSession({
     keys: [(Math.random() + 1).toString(36).substring(7)]
 }));
 
-var emailKey = ""; //For email verification
+//var emailKey = ""; //For email verification
 
 MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
     
@@ -44,7 +44,7 @@ function sendEmail(email, key) {
         to: email, 
         subject: 'Email confirmation for twitter', 
         text: '',
-        html: "your key is " + emailkey
+        html: "your key is " + key
         //html: 'http://130.245.168.86/verify?email=' + email + '&key=' + key
     };
     transporter.sendMail(mailOptions, (error, info) => {
@@ -56,12 +56,12 @@ function sendEmail(email, key) {
 }
          
 app.post("/adduser", function (request, response) {
-	console.log("IN ADDUSER POST");
+	
     
     var username = request.body.username;
     var password = request.body.password;
     var email = request.body.email;    
-    emailkey = (Math.random() + 1).toString(36).substring(7);
+    var emailkey = (Math.random() + 1).toString(36).substring(7);
     
     if (username && password && email) {
         //check if username/email has been taken already
@@ -104,7 +104,7 @@ app.get("/login", function (request, response) {
 });
 
 app.post("/login", function (request, response) {
-	console.log("IN LOGIN POST");
+	
     var username = request.body.username;
     var password = request.body.password;
     
@@ -151,19 +151,30 @@ app.post("/verify", function (request, response) {
 	console.log("IN VERIFY POST");
     var email = request.body.email;
     var key = request.body.key;
-
+    var emailkey = "";
     if (email && key) {
-        if ( key == emailkey || key == "abracadabra") {
-			//console.log("IN HERE IN VERIFY");
-            response.json({"status": "OK"});
-            db.collection("users").update(
-                { "email": email }, 
-                { $set: { "verified": "yes" } } 
-            );
-        }
-        else { 
-            response.json({"status": "ERROR", "Error": "INVALID KEY PLEASE TRY AGAIN"});
-        }
+        
+        
+        db.collection("users").findOne({email: email}, function (err, document) {
+            if (err){ 
+                console.log(err);
+            } else {
+                emailkey = document.verified;
+                console.log("THE KEY IS " + document.verified);
+                if ( key == emailkey || key == "abracadabra") {
+                    //console.log("IN HERE IN VERIFY");
+                    response.json({"status": "OK"});
+                    db.collection("users").update(
+                        { "email": email }, 
+                        { $set: { "verified": "yes" } } 
+                    );
+                }
+                else { 
+                    response.json({"status": "ERROR", "Error": "INVALID KEY PLEASE TRY AGAIN"});
+                }
+            }
+        });
+        
     } else {
         response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
     }
@@ -174,11 +185,7 @@ app.get("/additem", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
-    
-    console.log("IN ADDITEM POST");
-    
     var content = request.body.content;
-    //console.log("what is the content" + content);
     //if not logged in error
     var timestamp = new Date().getTime();
     console.log(request.session);
@@ -212,7 +219,6 @@ app.post("/additem", function (request, response) {
                     };
                     
                     db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}});
-                    console.log("success");
                     
                     response.json ({
                         status: "OK",
@@ -259,7 +265,6 @@ app.get("/item/:id", function (request, response) {
 app.delete("/item/:id", function (request, response) {
 
     var id = request.params.id;
-    console.log("param id is..." + id);
      if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("users").update(
@@ -276,9 +281,9 @@ app.delete("/item/:id", function (request, response) {
                     response.json({ "status": "ERROR" });
                 } else {
                     db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
-                        if (error) console.log(error);
-                        console.log(document);
-                        if (document) {
+                        if (error) {
+                            console.log(error);
+                        } else if (document) {
                             db.collection("tweets").remove({"id": parseInt(request.params.id)}, 1);
                             response.json({status: "SUCCESS"});
                         } else {
@@ -298,9 +303,9 @@ app.post("/item", function (request, response) {
     if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
-			if (error) console.log(error);
-			//console.log(document);
-            if (document) {
+			if (error) { console.log(error); }
+			
+            else if (document) {
                 response.json({
                     status: "OK",
                     item: {
@@ -335,11 +340,9 @@ app.post("/search", function(request, response) {
 	}
     
 	if (request.body.timestamp) {
-		//console.log(" timestamp exists");
 		timestamp = timestamp * 1000;
 	} else {
 		timestamp = new Date().getTime();
-		//console.log("default timestamp ", timestamp);
 	}
     if (timestamp) {
         if (!request.session.isnew && request.session.username != null) {
@@ -348,14 +351,12 @@ app.post("/search", function(request, response) {
 			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
 				if (val) {
                     if (currentLimit < limit) {
-
-                        //items.push(val);
                         items.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp});
                         currentLimit++;
                     }		
 				} else {
 				    response.json({status:"OK", items:items});
-                    //console.log("items are " + JSON.stringify(items));
+
 				}
 			});
             
@@ -377,8 +378,7 @@ app.get("/follow", function (request, response) {
 });
 
 app.post("/follow", function (request, response) {
-    console.log("IN ADDITEM POST");
-
+   
     var followbool = request.body.followbool;
     var currentUser = request.session.username;
     var otherUser = request.body.username; //other user to folllow or unfollow
@@ -386,7 +386,7 @@ app.post("/follow", function (request, response) {
    if (!request.session.isnew && request.session.username != null) {
         //follow
         if (followbool == "true") {
-            console.log("following");
+           
             db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
                 
                 if (error) {
@@ -411,7 +411,7 @@ app.post("/follow", function (request, response) {
         //unfollow
         } else if (followbool == "false"){
             
-            console.log("attempt at unfollowing");
+          
             db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
                 if (error) {
                     response.json({status: "error", error: error});
