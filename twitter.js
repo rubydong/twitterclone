@@ -4,12 +4,13 @@ var app = express();
 var path = require("path");
 var bodyParser = require("body-parser");
 var nodemailer = require("nodemailer");
+var cp = require("cookie-parser");
 var MongoClient = require("mongodb").MongoClient;
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
-app.use(express.cookieParser());
+app.use(cp());
 app.set("trust proxy", 1); //Trust first proxy
 app.use(cookieSession({
     name: "session",
