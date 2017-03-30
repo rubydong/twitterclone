@@ -213,7 +213,7 @@ app.post("/additem", function (request, response) {
     var timestamp = new Date().getTime();
     console.log(request.session);
     console.log(request.session.username);
-	if (validSession(request.cookies.key) {
+	if (validSession(request.cookies.key)) {
     //if (!request.session.isnew && request.session.username != null) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
@@ -262,7 +262,7 @@ app.post("/additem", function (request, response) {
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
-	if (validSession(request.cookies.key) {
+	if (validSession(request.cookies.key)) {
     //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
@@ -290,7 +290,7 @@ app.get("/item/:id", function (request, response) {
 app.delete("/item/:id", function (request, response) {
 
     var id = request.params.id;
-	if (validSession(request.cookies.key) {
+	if (validSession(request.cookies.key)) {
      //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("users").update(
@@ -326,7 +326,7 @@ app.delete("/item/:id", function (request, response) {
 
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-if (validSession(request.cookies.key) {
+if (validSession(request.cookies.key)) {
     //if (!request.session.isNew) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
@@ -372,7 +372,7 @@ app.post("/search", function(request, response) {
 		timestamp = new Date().getTime();
 	}
     if (timestamp) {
-		if (validSession(request.cookies.key) {
+		if (validSession(request.cookies.key)) {
         //if (!request.session.isnew && request.session.username != null) {
 			
             var items = new Array();
@@ -411,7 +411,7 @@ app.post("/follow", function (request, response) {
     var currentUser = request.session.username;
     var otherUser = request.body.username; //other user to folllow or unfollow
     
-	if (validSession(request.cookies.key) {
+	if (validSession(request.cookies.key)) {
    //if (!request.session.isnew && request.session.username != null) {
         //follow
         if (followbool == "true") {
