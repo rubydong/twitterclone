@@ -134,7 +134,7 @@ app.post("/login", function (request, response) {
 
 				db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {});
 				
-				res.cookie('key', username);
+				response.cookie('key', username);
                 //request.session.username = username;
                 response.json({"status": "OK"});
             } else {
@@ -152,7 +152,6 @@ app.get("/logout", function(request, response) {
     console.log("IN LOGOUT POST");
     request.session = null;
 	console.log(request.cookies.key);
-	db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
     response.redirect('/login');
 });
 
@@ -160,6 +159,8 @@ app.post("/logout", function (request, response) {
     
         console.log("IN LOGOUT POST");
         request.session = null;
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+		response.clearCookie("key");
         response.json({ "status": "OK" });
         response.redirect('/login');
 
