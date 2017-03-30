@@ -154,6 +154,9 @@ app.get("/logout", function(request, response) {
     console.log("IN LOGOUT POST");
     request.session = null;
 	console.log(request.cookies.key);
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+		response.clearCookie("key");
+		console.log(request.cookies.key);
     response.redirect('/login');
 });
 
@@ -163,6 +166,7 @@ app.post("/logout", function (request, response) {
         request.session = null;
 		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
 		response.clearCookie("key");
+		console.log(request.cookies.key);
         response.json({ "status": "OK" });
         response.redirect('/login');
 
@@ -227,12 +231,12 @@ app.post("/additem", function (request, response) {
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         
         db.collection("users").update(
-            {"username": request.session.username},
+            {"username": request.cookies.key},
             {
               $push: {
                     "tweets": {
                           "id": id,   
-                          "username": request.session.username,
+                          "username": request.cookies.key,
                           "content": content,
                           "timestamp": timestamp
                           
@@ -245,7 +249,7 @@ app.post("/additem", function (request, response) {
                 } else {
                     var document = {
                         "id": id,   
-                        "username": request.session.username,
+                        "username": request.cookies.key,
                         "content": content,
                         "timestamp": timestamp
                     };
