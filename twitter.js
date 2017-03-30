@@ -383,7 +383,7 @@ app.post("/follow", function (request, response) {
     var currentUser = request.session.username;
     var otherUser = request.body.username; //other user to folllow or unfollow
     
-    if (!request.session.isnew && request.session.username != null) {
+   if (!request.session.isnew && request.session.username != null) {
         //follow
         if (followbool == "true") {
             console.log("following");
@@ -397,12 +397,13 @@ app.post("/follow", function (request, response) {
                 } else {
                     db.collection("users").update(
                         {"username": otherUser},
-                        { "$push": { "followers": {"username": currentUser} } }
+                        { $addToSet: { "followers": {"username": currentUser}}}
                     );
                     
                     db.collection("users").update(
-                            {"username": currentUser}, 
-                            { $push: { "following": {"username": otherUser} } }
+                        {"username": currentUser}, 
+                        { $addToSet: { "following": {"username": otherUser}}}
+                            
                     );
                     response.json({status: "OK"});   
                 }
@@ -424,8 +425,8 @@ app.post("/follow", function (request, response) {
                     );
                     
                     db.collection("users").update(
-                            {"username": currentUser}, 
-                            { "$pull": { "following": {"username": otherUser} } }
+                        {"username": currentUser}, 
+                        { $pull: { "following": {"username": otherUser} } }
                     );
                     response.json({status: "OK"});   
                 }
