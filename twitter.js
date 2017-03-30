@@ -56,22 +56,6 @@ function sendEmail(email, key) {
         console.log('Message sent');
     });
 }
-
-function validSession(username) {
-	db.collection("sessions").findOne( {"sessionkey": username}, {"sessionkey": 1}, function (error, doc) {
-		if (error) {
-			console.log(error);
-			return false;
-		} else if (doc) {
-			console.log("found", doc.sessionkey);
-			return true;
-		} else {
-			console.log("stuff")
-			return false;
-		}
-	});
-
-}
          
 app.post("/adduser", function (request, response) {
 	
@@ -151,7 +135,7 @@ app.post("/login", function (request, response) {
 });
 
 app.get("/logout", function(request, response) {
-    console.log("IN LOGOUT POST");
+    console.log("IN LOGOUT GET");
     request.session = null;
 	console.log(request.cookies.key);
 		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
@@ -218,14 +202,9 @@ app.post("/additem", function (request, response) {
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
-    console.log(request.session);
-    console.log(request.session.username);
-	console.log("cookies",request.cookies);
-
+	console.log("session key:",request.cookies.key);
 
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-    //if (!request.session.isnew && request.session.username != null) {
-
 		if (doc) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
@@ -275,8 +254,8 @@ app.post("/additem", function (request, response) {
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     console.log("param id is.." + id);
-	if (validSession(request.cookies.key)) {
-    //if (!request.session.isNew) {
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
@@ -298,16 +277,17 @@ app.get("/item/:id", function (request, response) {
     } else {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
+	});
 });
 
 app.delete("/item/:id", function (request, response) {
 
     var id = request.params.id;
-	if (validSession(request.cookies.key)) {
-     //if (!request.session.isNew) {
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("users").update(
-            {"username": request.session.username},
+            {"username": request.session.key},
             {
               $pull: {
                     "tweets": {
@@ -335,12 +315,13 @@ app.delete("/item/:id", function (request, response) {
     } else {
         response.json({status: "FAILURE"});
     }
+	});
 });
 
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-if (validSession(request.cookies.key)) {
-    //if (!request.session.isNew) {
+		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
 			if (error) { console.log(error); }
@@ -362,6 +343,7 @@ if (validSession(request.cookies.key)) {
     } else {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
+	});
 });
 
 app.get("/search", function(request, response) {
@@ -385,9 +367,8 @@ app.post("/search", function(request, response) {
 		timestamp = new Date().getTime();
 	}
     if (timestamp) {
-		if (validSession(request.cookies.key)) {
-        //if (!request.session.isnew && request.session.username != null) {
-			
+		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+			if (doc) {	
             var items = new Array();
 			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
 				if (val) {
@@ -405,6 +386,7 @@ app.post("/search", function(request, response) {
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }
+		});
     } else {
         response.json({status: "ERROR", "Error": "TIMESTAMP IS EMPTY"});
     }
@@ -421,11 +403,11 @@ app.get("/follow", function (request, response) {
 app.post("/follow", function (request, response) {
    
     var followbool = request.body.followbool;
-    var currentUser = request.session.username;
+    var currentUser = request.session.key;
     var otherUser = request.body.username; //other user to folllow or unfollow
-    
-	if (validSession(request.cookies.key)) {
-   //if (!request.session.isnew && request.session.username != null) {
+   
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) { 
         //follow
         if (followbool == "true") {
            
@@ -452,8 +434,6 @@ app.post("/follow", function (request, response) {
             });
         //unfollow
         } else if (followbool == "false"){
-            
-          
             db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
                 if (error) {
                     response.json({status: "error", error: error});
@@ -479,6 +459,7 @@ app.post("/follow", function (request, response) {
     } else {
         response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
     }
+	});
     
 });
 
