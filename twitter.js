@@ -132,7 +132,10 @@ app.post("/login", function (request, response) {
 });
 
 app.get("/logout", function(request, response) {
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/master
     console.log("IN LOGOUT GET");
     request.session = null;
 	console.log(request.cookies.key);
@@ -400,6 +403,7 @@ app.get("/follow", function (request, response) {
 app.post("/follow", function (request, response) {
     
     var followbool = request.body.followbool;
+<<<<<<< HEAD
     
    
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -469,6 +473,28 @@ app.get("/user/:username", function (request, response) {
             db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
                 if (doc) { 
                     console.log("the username is " + username);
+=======
+    var currentUser = request.session.key;
+    var otherUser = request.body.username; //other user to folllow or unfollow
+   
+	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		if (doc) { 
+        //follow
+        if (followbool == "true") {
+           
+            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                
+                if (error) {
+                    response.json({status: "error", error: error});
+                }
+                else if (document == null) {
+                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
+                } else {
+                    db.collection("users").update(
+                        {"username": otherUser},
+                        { $addToSet: { "followers": {"username": currentUser}}}
+                    );
+>>>>>>> origin/master
                     
                     var following = document.following;
                     var followingCount = Object.keys(following).length;
@@ -488,6 +514,7 @@ app.get("/user/:username", function (request, response) {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
             });
+<<<<<<< HEAD
         }
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
@@ -510,6 +537,16 @@ app.get("/user/:username/followers", function (request, response) {
                         status: "OK", 
                         users: followers
                     });
+=======
+        //unfollow
+        } else if (followbool == "false"){
+            db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                if (error) {
+                    response.json({status: "error", error: error});
+                }
+                else if (document == null) {
+                    response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
+>>>>>>> origin/master
                 } else {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
@@ -540,10 +577,18 @@ app.get("/user/:username/following", function (request, response) {
                 }
             });
         }
+<<<<<<< HEAD
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
         }
     }); 
+=======
+    } else {
+        response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
+    }
+	});
+    
+>>>>>>> origin/master
 });
 
 app.listen(1337);
