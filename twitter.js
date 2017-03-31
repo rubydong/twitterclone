@@ -27,12 +27,7 @@ MongoClient.connect("mongodb://localhost:27017/twitter", function (error, databa
     console.log("Connected to MongoDB");
 });
 
-app.get("/", function (request, response) {
-    /* Email, follower, and following <- /user/:username */
-    /* New tweet -> adduser */
-    /* Everyone's tweets <- search following true*/
-});
-
+//front end
 app.get("/adduser", function (request, response) {
     response.sendFile (path.join(__dirname + "/adduser.html"));
 });
@@ -61,7 +56,8 @@ function sendEmail(email, key) {
         console.log('Message sent');
     });
 }
-         
+
+//grading
 app.post("/adduser", function (request, response) {
     var username = request.body.username;
     var password = request.body.password;
@@ -104,10 +100,12 @@ app.post("/adduser", function (request, response) {
     }
 });
         
+//front end
 app.get("/login", function (request, response) {            
     response.sendFile(path.join(__dirname + "/login.html"));
 });
 
+//grading
 app.post("/login", function (request, response) {
     var username = request.body.username;
     var password = request.body.password;
@@ -136,6 +134,7 @@ app.post("/login", function (request, response) {
     
 });
 
+//front end
 app.get("/logout", function(request, response) {
 
     console.log("IN LOGOUT GET");
@@ -147,6 +146,7 @@ app.get("/logout", function(request, response) {
     response.redirect('/login');
 });
 
+//grading
 app.post("/logout", function (request, response) {
         console.log("IN LOGOUT POST");
         request.session = null;
@@ -158,10 +158,12 @@ app.post("/logout", function (request, response) {
 
 });
 
+//front end
 app.get("/verify", function (request, response) {
     response.sendFile(path.join(__dirname + "/verify.html"));
 });
 
+//grading
 app.post("/verify", function (request, response) {
     
 	console.log("IN VERIFY POST");
@@ -196,12 +198,8 @@ app.post("/verify", function (request, response) {
     }
 });
 
-app.get("/additem", function (request, response) {
-    response.sendFile(path.join(__dirname + "/additem.html"));
-});
-
-app.post("/additem", function (request, response) {
-    
+//grading
+app.post("/additem", function (request, response) { 
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
@@ -254,7 +252,9 @@ app.post("/additem", function (request, response) {
 	console.log("EXITED ADDITEM");
 });
 
+//grading
 app.get("/item/:id", function (request, response) {
+    
     var id = request.params.id;
     console.log("param id is.." + id);
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -283,6 +283,7 @@ app.get("/item/:id", function (request, response) {
 	});
 });
 
+//grading
 app.delete("/item/:id", function (request, response) {
     
     var id = request.params.id;
@@ -321,6 +322,7 @@ app.delete("/item/:id", function (request, response) {
 	});
 });
 
+//front end
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
 		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -349,34 +351,25 @@ app.post("/item", function (request, response) {
 	});
 });
 
+//front end
 app.get("/search", function(request, response) {   
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
 
-app.get("/profile", function (request, response) {
+//front end to get everyone's profile
+app.get("/profile/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/profile.html"));
 });
-app.post("/profile", function (request, response) {
-    db.collection("users").findOne({username: request.cookies.key}, function (error, user) {
-        var tweets = user.tweets;
-        var tweetsArr = new Array();
-        console.log(tweets);
-        for (var i = 0; i < tweets.length; i++) {
-            
-            tweetsArr.push({
-                id: tweets[i].id,
-                username: tweets[i].username,
-                content: tweets[i].content,
-                timestamp: tweets[i].timestamp
-            });
-            
 
-        }
-        response.json({status: "OK", items: tweetsArr});
-
-    });
+//front end to determine who the user is in html/js
+app.post("/whoami", function (request, response) {
+    if (request.cookies.key)
+        response.json ({status:"OK", username: request.cookies.key});
+    else 
+        response.json ({status: "error", msg: "USER IS NOT LOGGED IN"});
 });
 
+//grading
 app.post("/search", function(request, response) {
     //var currentLimit = 0;
     var timestamp = new Date().getTime(); //default current time
@@ -397,21 +390,22 @@ app.post("/search", function(request, response) {
             tweetsArr = new Array();
             if (username) {
                 db.collection("users").findOne({username: username}, function (error, user) {
-                    var tweets = user.tweets;
-                    for (var i = 0; i < tweets.length; i++) {
-                        if ((tweets[i].content.indexOf(query) != -1) && (tweets[i].timestamp <= timestamp) && currentLimit < limit) {
-                            //console.log(tweets[i]);
-                            tweetsArr.push({
-                                id: tweets[i].id,
-                                username: tweets[i].username,
-                                content: tweets[i].content,
-                                timestamp: tweets[i].timestamp
-                            });
-                            currentLimit++;
+                    if (user) {
+                        var tweets = user.tweets;
+                        for (var i = 0; i < tweets.length; i++) {
+                            if ((tweets[i].content.indexOf(query) != -1) && (tweets[i].timestamp <= timestamp) && currentLimit < limit) {
+                                //console.log(tweets[i]);
+                                tweetsArr.push({
+                                    id: tweets[i].id,
+                                    username: tweets[i].username,
+                                    content: tweets[i].content,
+                                    timestamp: tweets[i].timestamp
+                                });
+                                currentLimit++;
+                            }
                         }
+                        response.json({status: "OK", items: tweetsArr});
                     }
-                    response.json({status: "OK", items: tweetsArr});
-                    
                 });
             } else {
                 if (following == "true") {   
@@ -458,13 +452,14 @@ app.post("/search", function(request, response) {
     });
 
 });
-                                       
+
+//front end
 app.get("/follow", function (request, response) {
     response.sendFile(path.join(__dirname + "/follow.html")); 
 });
 
+//grading
 app.post("/follow", function (request, response) {
-    
     var followbool = request.body.followbool;
     
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -526,8 +521,10 @@ app.post("/follow", function (request, response) {
 	});
     
 });
-                                       
+                    
+//grading
 app.get("/user/:username", function (request, response) {
+    
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {
@@ -560,6 +557,7 @@ app.get("/user/:username", function (request, response) {
     }); 
 });
 
+//front end
 app.post("/user", function (request, response) {
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         if (doc) { 
@@ -587,7 +585,7 @@ app.post("/user", function (request, response) {
     });
 });
 
-
+//grading
 app.get("/user/:username/followers", function (request, response) {
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
@@ -613,6 +611,7 @@ app.get("/user/:username/followers", function (request, response) {
     }); 
 });
 
+//grading
 app.get("/user/:username/following", function (request, response) {
     
     var username = request.params.username;

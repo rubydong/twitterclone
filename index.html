@@ -9,9 +9,8 @@
     </head>
     <body>
         <div id="navigation">
-            <!- -->
             <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
-            <button type="submit" class= "btn btn-default" onclick ="window.location='/profile'">Profile</button>
+            <button type="submit" class= "btn btn-default" id= "profileClick" onclick ="window.location='/'">Profile</button>
             <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
             <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
         </div>
@@ -25,11 +24,11 @@
         <div id="tweetsInfo">
 
             <form method="POST" action="/additem" id="additemForm">
-                <h2>Tweet [additem]</h2>
+                <p><p>
                 <div class="formContent">
                 <textarea name="content" id="content"></textarea> <br>
                 Total word count: <span id="count">0</span> <br>
-                <button type="submit" class="btn btn-default" style="margin-top: 10px">Post</button>   
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Tweet</button>   
                 </div>
             </form>
 
@@ -63,7 +62,8 @@
                 }).done(function (data) {
                     if (data.status == "OK") {
                         $("#info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " followers<br>" + data.user.following + " following"); 
-                        //alert(JSON.stringify(data));
+                        var newlocation = "window.location='/profile/" + data.user.username + "'";  
+                        document.getElementById('profileClick').setAttribute('onclick',newlocation);
                     } else {
                          //alert(JSON.stringify(data.error));
                     }

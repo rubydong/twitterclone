@@ -2,65 +2,68 @@
 <html>
     <head>
         
-        <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
-        <link rel="stylesheet" type="text/css" href="style.css">
+        <link rel="stylesheet" type="text/css" href="../materialize/css/materialize.css">
+        <link rel="stylesheet" type="text/css" href="../style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
     </head>
     <body>
-        <div id="navigation">
-            <!- -->
-            <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
-            <button type="submit" class= "btn btn-default" onclick ="window.location='/profile'">Profile</button>
-            <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
-            <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
+        <div id="everything">
+            <div id="navigation">
+                <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
+                <button type="submit" class= "btn btn-default" onclick ="window.location='/profile'">Profile</button>
+                <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
+                <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
+            </div>
+
+            <div id="userInfo">
+                <h2>Twitter</h2>
+                <img src="../img/cat.jpg" width="200px"> <br>
+                <div id="info"> </div>
+            </div>
+
+            <div id="tweetsInfo">
+                <div id="newsfeed"></div>
+            </div>
         </div>
-        
-        <div id="userInfo">
-            <h2>Twitter</h2>
-            <img src="img/cat.jpg" width="200px"> <br>
-            <div id="info"> </div>
-        </div>
-        
-        <div id="tweetsInfo">
-            <div id="newsfeed"></div>
-        </div>
-        
         <script>
 
             $(document).ready(function () {
+                var arr = (window.location.pathname).split("/");
+                var username = arr[arr.length-1];
+
                 $.ajax ({
-                    "url": "/profile",
-                    "type": "POST"
-       
-                }).done(function (data) {
-                    if (data.status == "OK") {
-                        var tweetsArr = data.items;
-                        for (var i = 0; i < tweetsArr.length; i++) {
-                            var timestamp = tweetsArr[i].timestamp;
-                            var date = new Date (timestamp);
-                            var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-                            
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " " + date + " unix [" + timestamp + "]<br>" + tweetsArr[i].content + "</div>");
+                    url: "/user/" + username,
+                    type: "GET",
+                    "dataType": "json", 
+                    "contentType": "application/json; charset=utf-8", 
+                    success: function (data) {
+                        if (data.status == "OK") {
+                            $("#info").append("@" + username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " followers<br>" + data.user.following + " following"); 
+                        } else {
+                            $("#everything").html("this profile does not exist");
+                        }
+                    }
+                });
+                
+                $.ajax({
+                    "url": "/search",
+                    "type":"POST",
+                    "data": JSON.stringify({
+                        username: username,
+                    }), 
+                    "dataType": "json", 
+                    "contentType": "application/json; charset=utf-8"
+                }).done(function(data) {
+                    if (data.status == "OK"){
+                        for (var i = 0; i < data.items.length; i++) {
+                            $("#newsfeed").prepend ("<div class='tweet'> Id #" + data.items[i].id + " @" + data.items[i].username + " Timestamp [" + data.items[i].timestamp + "]<br>" + data.items[i].content + "</div>");
                         }
                     } else {
                         window.location = "/login";
                     }
                 });
-                
-                $.ajax ({
-                    "url": "/user", 
-                    "type": "POST"
-                }).done(function (data) {
-                    if (data.status == "OK") {
-                        $("#info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " followers<br>" + data.user.following + " following"); 
-                        //alert(JSON.stringify(data));
-                    } else {
-                         //alert(JSON.stringify(data.error));
-                    }
-                });
-                
-                
+
             });
     
         </script>
