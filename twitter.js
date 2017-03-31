@@ -354,56 +354,73 @@ app.post("/search", function(request, response) {
 	var query = ''; 
     var username = request.body.username;
     var following = "true"; //default true
+    var currentLimit = 0;
     
     if (request.body.limit) { limit = parseInt(request.body.limit); }
-	if (request.body.timestamp) { timestamp = timestamp * 1000; }
+	if (request.body.timestamp) { timestamp = request.body.timestamp; } //maybe * 1000...
     if (request.body.query) {query = request.body.query;}
 	if (request.body.following) { following = request.body.following; }
     
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         if (doc) {
-            console.log("logged in");
             
             tweetsArr = new Array();
-            //if not username...
-            if (following == "true") {
-                
-                console.log("following is true");
-                
-                db.collection("users").find({username:request.cookies.key}).toArray(
-                function(err, user) {
-                    var count = 0;
-                    var last = user[0].following.length;
-                        
-                    for (var i = 0; i < user[0].following.length; i++) {
-                        db.collection("users").find({username:user[0].following[i]}).toArray(
-                        function(err, followingUser) {
-                            var tweets = followingUser[0].tweets;
-                            for (var j = 0; j < tweets.length; j++) {
-                                if ( (tweets[j].content.indexOf(query) != -1) && 
-                                     (tweets[j].timestamp <= timestamp) ) {
-                                    tweetsArr.push({
-                                        id: tweets[j].id,
-                                        username: tweets[j].username,
-                                        content: tweets[j].content,
-                                        timestamp: tweets[j].timestamp
-                                    });
-                                }
-                            }
-                            count++;
-                            if (count == last)
-                                response.json({status: "OK", items: tweetsArr});
-                        });
+            if (username) {
+                db.collection("users").findOne({username: username}, function (error, user) {
+                    var tweets = user.tweets;
+                    for (var i = 0; i < tweets.length; i++) {
+                        if ((tweets[i].content.indexOf(query) != -1) && (tweets[i].timestamp <= timestamp) && currentLimit < limit) {
+                            //console.log(tweets[i]);
+                            tweetsArr.push({
+                                id: tweets[i].id,
+                                username: tweets[i].username,
+                                content: tweets[i].content,
+                                timestamp: tweets[i].timestamp
+                            });
+                            currentLimit++;
+                        }
                     }
-                });  
-            } else {
-                //traverse through tweets data base
-                db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
-                    if (val) 
-                        tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
-                    else 
-                        response.json({status:"OK", items:tweetsArr});
+                    response.json({status: "OK", items: tweetsArr});
+                    
                 });
+            } else {
+                if (following == "true") {   
+                    db.collection("users").find({username:request.cookies.key}).toArray(
+                    function(err, user) {
+                        var count = 0;
+                        var last = user[0].following.length;
+                        //looking for the followings
+                        for (var i = 0; i < user[0].following.length; i++) {
+                            db.collection("users").find({username:user[0].following[i]}).toArray(
+                            function(err, followingUser) {
+                                var tweets = followingUser[0].tweets;
+                                //looking for the tweets of each one of the followings
+                                for (var j = 0; j < tweets.length; j++) {
+                                    if ( (tweets[j].content.indexOf(query) != -1) && (tweets[j].timestamp <= timestamp) && currentLimit < limit) {
+                                        tweetsArr.push({
+                                            id: tweets[j].id,
+                                            username: tweets[j].username,
+                                            content: tweets[j].content,
+                                            timestamp: tweets[j].timestamp
+                                        });
+                                        currentLimit++;
+                                    }
+                                }
+                                count++;
+                                if (count == last)
+                                    response.json({status: "OK", items: tweetsArr});
+                            });
+                        }
+                    });  
+                } else {
+                    //traverse through tweets data base
+                    db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
+                        if (val) 
+                            tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
+                        else 
+                            response.json({status:"OK", items:tweetsArr});
+                    });
+                }
             }
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
