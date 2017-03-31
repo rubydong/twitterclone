@@ -117,7 +117,7 @@ button:hover, button:active{ /*#26A69A*/
     border:1px solid #9E9E9E;
 }
 
-#follow, #searchForm {
+#follow, #searchForm, #itemForm {
     width: 50%;
     margin: 0 auto;
 }

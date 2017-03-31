@@ -27,6 +27,12 @@ MongoClient.connect("mongodb://localhost:27017/twitter", function (error, databa
     console.log("Connected to MongoDB");
 });
 
+app.get("/", function (request, response) {
+    /* Email, follower, and following <- /user/:username */
+    /* New tweet -> adduser */
+    /* Everyone's tweets <- search following true*/
+});
+
 app.get("/adduser", function (request, response) {
     response.sendFile (path.join(__dirname + "/adduser.html"));
 });
@@ -57,7 +63,6 @@ function sendEmail(email, key) {
 }
          
 app.post("/adduser", function (request, response) {
-    
     var username = request.body.username;
     var password = request.body.password;
     var email = request.body.email;    
@@ -196,6 +201,7 @@ app.get("/additem", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
+    
     var content = request.body.content;
     //if not logged in error
     var timestamp = new Date().getTime();
@@ -347,6 +353,30 @@ app.get("/search", function(request, response) {
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
 
+app.get("/profile", function (request, response) {
+    response.sendFile(path.join(__dirname + "/profile.html"));
+});
+app.post("/profile", function (request, response) {
+    db.collection("users").findOne({username: request.cookies.key}, function (error, user) {
+        var tweets = user.tweets;
+        var tweetsArr = new Array();
+        console.log(tweets);
+        for (var i = 0; i < tweets.length; i++) {
+            
+            tweetsArr.push({
+                id: tweets[i].id,
+                username: tweets[i].username,
+                content: tweets[i].content,
+                timestamp: tweets[i].timestamp
+            });
+            
+
+        }
+        response.json({status: "OK", items: tweetsArr});
+
+    });
+});
+
 app.post("/search", function(request, response) {
     //var currentLimit = 0;
     var timestamp = new Date().getTime(); //default current time
@@ -428,16 +458,13 @@ app.post("/search", function(request, response) {
     });
 
 });
-        
-app.get("/home", function(request, response) {
-    response.sendFile(path.join(__dirname + "/home.html")); 
-});
                                        
 app.get("/follow", function (request, response) {
     response.sendFile(path.join(__dirname + "/follow.html")); 
 });
 
 app.post("/follow", function (request, response) {
+    
     var followbool = request.body.followbool;
     
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -533,6 +560,34 @@ app.get("/user/:username", function (request, response) {
     }); 
 });
 
+app.post("/user", function (request, response) {
+    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+        if (doc) { 
+            db.collection("users").findOne({"username": request.cookies.key}, function (error, document) {
+
+                var following = document.following;
+                var followingCount = Object.keys(following).length;
+
+                var followers = document.followers;
+                var followersCount = Object.keys(followers).length;
+
+                response.json({
+                    status: "OK", 
+                    user: {
+                        username: request.cookies.key,
+                        email: document.email,
+                        followers: followersCount,
+                        following: followingCount
+                    }
+                });
+            });
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
+});
+
+
 app.get("/user/:username/followers", function (request, response) {
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
@@ -559,6 +614,7 @@ app.get("/user/:username/followers", function (request, response) {
 });
 
 app.get("/user/:username/following", function (request, response) {
+    
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {

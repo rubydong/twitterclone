@@ -47,7 +47,7 @@
                         var parsedJson = $.parseJSON(JSON.stringify(header));
                         console.log(parsedJson.responseText);
                         if (data.status=="OK"){
-                            window.location = "home";
+                            window.location = "/";
                         }
                         else 
                             $("#appendHere").html("<p style='text-align:center'>Invalid Login, try again<br>");

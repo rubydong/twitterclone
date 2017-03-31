@@ -23,16 +23,6 @@
         </div>
         
         <div id="tweetsInfo">
-
-            <form method="POST" action="/additem" id="additemForm">
-                <h2>Tweet [additem]</h2>
-                <div class="formContent">
-                <textarea name="content" id="content"></textarea> <br>
-                Total word count: <span id="count">0</span> <br>
-                <button type="submit" class="btn btn-default" style="margin-top: 10px">Post</button>   
-                </div>
-            </form>
-
             <div id="newsfeed"></div>
         </div>
         
@@ -40,8 +30,9 @@
 
             $(document).ready(function () {
                 $.ajax ({
-                    "url": "/search",
+                    "url": "/profile",
                     "type": "POST"
+       
                 }).done(function (data) {
                     if (data.status == "OK") {
                         var tweetsArr = data.items;
@@ -69,30 +60,6 @@
                     }
                 });
                 
-                 $("#additemForm").submit(function (event) {
-                    event.preventDefault(); 
-                    $.ajax({
-                        "url": "/additem",
-                        "type":"POST",
-                        "data": JSON.stringify({
-                            content: $("textarea[name='content'").val()
-                        }), 
-                        "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8"
-                    }).done(function(data){
-                        if (data.status == "OK") {
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
-                        }
-                        else {
-                            $("#newsfeed").prepend("<p> <center>" + data.error);
-                        }
-                    });
-                });
-                
-                $("#content").on('keyup', function() {
-                    var wordcount = this.value.length;
-                    $("#count").html(wordcount);
-                });     
                 
             });
     
