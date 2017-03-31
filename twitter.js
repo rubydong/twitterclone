@@ -360,20 +360,47 @@ app.post("/search", function(request, response) {
     if (request.body.query) {query = request.body.query;}
 	if (request.body.following) { following = request.body.following; }
     
-    console.log(timestamp + " " + limit);
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         if (doc) {
-            var tweetsArr = new Array();
+            console.log("logged in");
+            
+            tweetsArr = new Array();
             //if not username...
             if (following == "true") {
-                //traverse through user's following's list
-                //for each user get their tweets 
-                // traverse through user's following's tweets
+                
+                console.log("following is true");
+                
+                db.collection("users").find({username:request.cookies.key}).toArray(
+                function(err, user) {
+                    var count = 0;
+                    var last = user[0].following.length;
+                        
+                    for (var i = 0; i < user[0].following.length; i++) {
+                        db.collection("users").find({username:user[0].following[i]}).toArray(
+                        function(err, followingUser) {
+                            var tweets = followingUser[0].tweets;
+                            for (var j = 0; j < tweets.length; j++) {
+                                if ( (tweets[j].content.indexOf(query) != -1) && 
+                                     (tweets[j].timestamp <= timestamp) ) {
+                                    tweetsArr.push({
+                                        id: tweets[j].id,
+                                        username: tweets[j].username,
+                                        content: tweets[j].content,
+                                        timestamp: tweets[j].timestamp
+                                    });
+                                }
+                            }
+                            count++;
+                            if (count == last)
+                                response.json({status: "OK", items: tweetsArr});
+                        });
+                    }
+                });  
             } else {
                 //traverse through tweets data base
                 db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
                     if (val) 
-                       tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
+                        tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
                     else 
                         response.json({status:"OK", items:tweetsArr});
                 });
@@ -394,10 +421,8 @@ app.get("/follow", function (request, response) {
 });
 
 app.post("/follow", function (request, response) {
-    
     var followbool = request.body.followbool;
     
-   
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
 		if (doc) { 
         
@@ -492,7 +517,6 @@ app.get("/user/:username", function (request, response) {
 });
 
 app.get("/user/:username/followers", function (request, response) {
-    
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {
