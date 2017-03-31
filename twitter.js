@@ -369,6 +369,7 @@ app.post("/whoami", function (request, response) {
         response.json ({status: "error", msg: "USER IS NOT LOGGED IN"});
 });
 
+
 //grading
 app.post("/search", function(request, response) {
     //var currentLimit = 0;
@@ -460,6 +461,7 @@ app.get("/follow", function (request, response) {
 
 //grading
 app.post("/follow", function (request, response) {
+    
     var followbool = request.body.followbool;
     
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
@@ -636,6 +638,16 @@ app.get("/user/:username/following", function (request, response) {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
         }
     }); 
+});
+
+//front end to get everyone's followers list
+app.get("/followers/:username", function (request, response) {
+    response.sendFile(path.join(__dirname + "/followers.html"));
+});
+
+//front end to get everyone's following list
+app.get("/following/:username", function (request, response) {
+    response.sendFile(path.join(__dirname + "/following.html"));
 });
 
 app.listen(1337);

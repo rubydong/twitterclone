@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="../materialize/css/materialize.css">
+        <link rel="stylesheet" type="text/css" href="../style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        
+        <style>
+            #followeringBox {
+                width: 50%;
+                margin-left: 25%;
+            }
+            
+            #followeringInner {
+                width: 100px;
+                height: 100px;
+                line-height: 100px;
+                margin: 5px;
+                background-color: white;
+                border: 1px solid #9E9E9E;
+                float: left;
+            }
+        </style>
+    </head>
+    
+    <body>
+        
+        <h2>Following</h2>
+
+        <div id="followeringBox"></div>
+        
+        
+        <script>
+
+            $(document).ready(function () {
+                var arr = (window.location.pathname).split("/");
+                var username = arr[arr.length-1];
+                
+                var user = "";
+                $.ajax({
+                    url: "/user/" + username + "/following", 
+                    type: "GET", 
+                    "dataType": "json", 
+                    "contentType": "application/json; charset=utf-8", 
+                    success: function (data) {
+                        if (data.status == "OK") {
+                            for (var i = 0; i < data.users.length; i++) {
+                                $("#followeringBox").append("<div id='followeringInner'>" + data.users[i] + "</div>");
+                            }
+                        } else {
+                            $("#followeringBox").html("This profile does not exist");
+                        }
+                    }
+                });
+             
+            });
+    
+        </script>
+    </body>
+</html>
+

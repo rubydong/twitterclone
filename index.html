@@ -61,7 +61,12 @@
                     "type": "POST"
                 }).done(function (data) {
                     if (data.status == "OK") {
-                        $("#info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " followers<br>" + data.user.following + " following"); 
+                        
+                        var followers = "<a href='/followers/" + data.user.username + "'> Followers </a>";
+                        var following = "<a href='/following/" + data.user.username + "'> Following </a>";
+                        
+                        $("#info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " " + followers + "<br>" + data.user.following + " " + following); 
+                        
                         var newlocation = "window.location='/profile/" + data.user.username + "'";  
                         document.getElementById('profileClick').setAttribute('onclick',newlocation);
                     } else {

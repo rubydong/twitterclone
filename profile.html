@@ -11,7 +11,7 @@
         <div id="everything">
             <div id="navigation">
                 <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
-                <button type="submit" class= "btn btn-default" onclick ="window.location='/profile'">Profile</button>
+                <button type="submit" class= "btn btn-default">Profile</button>
                 <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
                 <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
             </div>
@@ -39,7 +39,12 @@
                     "contentType": "application/json; charset=utf-8", 
                     success: function (data) {
                         if (data.status == "OK") {
-                            $("#info").append("@" + username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " followers<br>" + data.user.following + " following"); 
+                            
+                        
+                            var followers = "<a href='/followers/" + username + "'> Followers </a>";
+                            var following = "<a href='/following/" + username + "'> Following </a>";
+                            
+                            $("#info").append("@" + username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " " + followers + "<br>" + data.user.following + " " + following); 
                         } else {
                             $("#everything").html("this profile does not exist");
                         }
