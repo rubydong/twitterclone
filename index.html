@@ -5,39 +5,47 @@
         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-
+       
     </head>
+    
     <body>
-        <div id="navigation">
-            <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
-            <button type="submit" class= "btn btn-default" id= "profileClick" onclick ="window.location='/'">Profile</button>
-            <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
-            <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
-        </div>
+        <div class="navigation">
+            <a href="/logout">LOGOUT</a>
+            <a href="/follow">FOLLOW</a>
+            <a href="/search">SEARCH</a>
+            <a href="" id="profileClick">PROFILE</a>
+            <a href="/">HOME</a>
+            <a href="/" style="float: left;">TWITTER</a>
+        </div> 
         
-        <div id="userInfo">
-            <h2>Twitter</h2>
-            <img src="img/cat.jpg" width="200px"> <br>
-            <div id="info"> </div>
-        </div>
         
-        <div id="tweetsInfo">
+        <div class="everything">
+            
+            <div id="userInfo">
 
-            <form method="POST" action="/additem" id="additemForm">
-                <p><p>
-                <div class="formContent">
-                <textarea name="content" id="content"></textarea> <br>
-                Total word count: <span id="count">0</span> <br>
-                <button type="submit" class="btn btn-default" style="margin-top: 10px">Tweet</button>   
-                </div>
-            </form>
+                <img src="img/cat.jpg" width="50px"> <br>
+                <div class="info"></div>
+            </div>
 
-            <div id="newsfeed"></div>
+            <div id="tweetsInfo">
+
+                <form method="POST" action="/additem" id="additemForm">
+                    <p><p>
+                    <div class="formContent">
+                    <textarea name="content" id="content"></textarea> <br>
+                        TOTAL WORD COUNT: <span id="count">0</span> <br>
+                    <button type="submit" class="btn btn-default" style="margin-top: 10px">Tweet</button>   
+                    </div>
+                </form>
+
+                <div id="newsfeed"></div>
+            </div>
+
         </div>
-        
         <script>
 
             $(document).ready(function () {
+                
                 $.ajax ({
                     "url": "/search",
                     "type": "POST"
@@ -46,10 +54,12 @@
                         var tweetsArr = data.items;
                         for (var i = 0; i < tweetsArr.length; i++) {
                             var timestamp = tweetsArr[i].timestamp;
-                            var date = new Date (timestamp);
-                            var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+                            //var date = new Date (timestamp);
+                            //var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
                             
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " " + date + " unix [" + timestamp + "]<br>" + tweetsArr[i].content + "</div>");
+//                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " " + date + " unix [" + timestamp + "]<br>" + tweetsArr[i].content + "</div>");
+                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " Timestamp: " + timestamp + "<br>" + tweetsArr[i].content + "</div>");
+                            
                         }
                     } else {
                         window.location = "/login";
@@ -65,10 +75,8 @@
                         var followers = "<a href='/followers/" + data.user.username + "'> Followers </a>";
                         var following = "<a href='/following/" + data.user.username + "'> Following </a>";
                         
-                        $("#info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " " + followers + "<br>" + data.user.following + " " + following); 
-                        
-                        var newlocation = "window.location='/profile/" + data.user.username + "'";  
-                        document.getElementById('profileClick').setAttribute('onclick',newlocation);
+                        $(".info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " " + followers + "<br>" + data.user.following + " " + following); 
+                        document.getElementById('profileClick').setAttribute('href',"/profile/" + data.user.username);
                     } else {
                          //alert(JSON.stringify(data.error));
                     }
@@ -86,7 +94,9 @@
                         "contentType": "application/json; charset=utf-8"
                     }).done(function(data){
                         if (data.status == "OK") {
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
+                            $("#content").val("");
+                        
+                            $("#newsfeed").prepend("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp: " + data.item.timestamp + "<br>" +  data.item.content + "</div>");
                         }
                         else {
                             $("#newsfeed").prepend("<p> <center>" + data.error);

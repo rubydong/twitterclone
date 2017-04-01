@@ -8,16 +8,64 @@
        
     </head>
     <body>
-        <div id="follow">
-        <form method="POST" action="/follow" id="followForm">
-            <h2>Follow</h2> <p>           
-            <div class="formContent">
-            <input type="text" name="username" placeholder="username">
-            <input type="text" name="followbool" placeholder="true or false">
-            <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
-            </div>
-        </form>
+        <div class="navigation">
+                <a href="/logout">LOGOUT</a>
+                <a href="/follow">FOLLOW</a>
+                <a href="/search">SEARCH</a>
+                <a href="" id="profileClick">PROFILE</a>
+                <a href="/">HOME</a>
+                <a href="/" style="float: left;">TWITTER</a>
+        </div> 
+        
+        
+        <div class="everything">
+            <form method="POST" action="/follow" id="followForm">
+                <h5>FOLLOW</h5> <p> 
+                <div>
+                <input type="text" name="username" placeholder="username">
+                <input type="text" name="followbool" placeholder="true or false">
+                <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
+                </div>
+            </form>
+            
+            <div id="addInfoHere"></div>
         </div>
+        
+        <script>
+            $(document).ready(function () {
+                
+                $.ajax({
+                    url: "/whoami", 
+                    type: "POST"
+                }).done(function(data) {
+                    if (data.status == "OK") {
+                        user = data.username;
+                        document.getElementById('profileClick').setAttribute('href',"/profile/" + user);
+                        
+                    }
+                });
+                    
+                $("#followForm").submit(function (event) {
+                    event.preventDefault(); 
+                    $.ajax({
+                        url: "/follow", 
+                        type: "POST", 
+                        data: JSON.stringify({
+                            username: $("input[name='username']").val(),
+                            followbool: $("input[name='followbool']").val()
+                        }),
+                        "dataType": "json", 
+                        "contentType": "application/json; charset=utf-8"
+                    }).done(function(data) {
+                        if (data.status == "OK") {
+                            $("#addInfoHere").html("<p>Success!");
+                        }
+                        else
+                            $("#addInfoHere").append(data.error);
+                    });
+                });
+            });
+        </script>
     </body>
 </html>
 

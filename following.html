@@ -31,7 +31,6 @@
         
         
         <script>
-
             $(document).ready(function () {
                 var arr = (window.location.pathname).split("/");
                 var username = arr[arr.length-1];
@@ -45,7 +44,7 @@
                     success: function (data) {
                         if (data.status == "OK") {
                             for (var i = 0; i < data.users.length; i++) {
-                                $("#followeringBox").append("<div id='followeringInner'>" + data.users[i] + "</div>");
+                                $("#followeringBox").append("<div id='followeringInner'><a href='/profile/" + data.users[i] + "'>" + data.users[i]  + "</div>");
                             }
                         } else {
                             $("#followeringBox").html("This profile does not exist");

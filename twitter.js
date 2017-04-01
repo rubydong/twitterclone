@@ -286,7 +286,6 @@ app.get("/item/:id", function (request, response) {
 
 //grading
 app.delete("/item/:id", function (request, response) {
-    
     var id = request.params.id;
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         //console.log("what is doc username " + JSON.stringify(doc));

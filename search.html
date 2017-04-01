@@ -14,28 +14,31 @@
     </head>
     
     <body>
-        <div id="navigation">
-            <button type="submit" class= "btn btn-default" onclick ="window.location='/'">Home</button>
-            <button type="submit" class= "btn btn-default" id= "profileClick" onclick ="window.location='/'">Profile</button>
-            <button type="submit" class="btn btn-default" onclick="window.location='/search'">Search</button>
-            <button type="submit" class="btn btn-default" onclick ="window.location='/logout'">Logout</button>    
-        </div>
-        <div id="everything">
+        <div class="navigation">
+                <a href="/logout">LOGOUT</a>
+                <a href="/follow">FOLLOW</a>
+                <a href="/search">SEARCH</a>
+                <a href="" id="profileClick">PROFILE</a>
+                <a href="/">HOME</a>
+                <a href="/" style="float: left;">TWITTER</a>
+        </div> 
+        
+        <div class="everything">
             <form method="POST" action="/search" id="searchForm">
-                <h2>Advanced Search</h2>
-                <div class="formContent">
+                <h5>ADVANCED SEARCH</h5>
+                
                 <input type="text" name="timestamp" placeholder="Timestamp (current time)">
                 <input type="text" name="limit" placeholder="Limit (25)">
                 <input type="text" name="query" placeholder="Query">
                 <input type="text" name="username" placeholder = "Username">
                 <input type="text" name="following" placeholder ="Following (true)">
                 <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
-                </div>
+
             </form>
 
             <form method="POST" action="/item" id ="itemForm">
                 <div class="formContent">
-                    <h2>Search by Id</h2>
+                    <h5>SEARCH BY ID</h5>
                     <input type="text" name="itemId" placeholder="Tweet Id">
                     <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
                 </div>
@@ -48,17 +51,15 @@
         <script>
 
             $(document).ready(function () {
-                var user = "";
                 $.ajax({
                     url: "/whoami", 
                     type: "POST"
                 }).done(function(data) {
                     if (data.status == "OK") {
                         user = data.username;
-                        var newlocation = "window.location='/profile/" + user + "'";  
-                        document.getElementById('profileClick').setAttribute('onclick',newlocation);
+                        document.getElementById('profileClick').setAttribute('href',"/profile/" + user);
+                        
                     }
-                    
                 });
                 
                 
@@ -104,8 +105,6 @@
                             if (data.status=="OK"){
                                 $("#everything").html("");
                                 $("#addInfoHere").html("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
-                                var newlocation = "window.location='/profile/" + data.user.username + "'";  
-                                document.getElementById('profileClick').setAttribute('onclick',newlocation);
                             }
                         else 
                             $("#addInfoHere").prepend("<p style='text-align:center'>" + data.error);
