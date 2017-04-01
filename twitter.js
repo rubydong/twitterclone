@@ -107,6 +107,7 @@ app.get("/login", function (request, response) {
 
 //grading
 app.post("/login", function (request, response) {
+    
     var username = request.body.username;
     var password = request.body.password;
     
@@ -288,15 +289,16 @@ app.delete("/item/:id", function (request, response) {
     
     var id = request.params.id;
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+        //console.log("what is doc username " + JSON.stringify(doc));
+        //console.log("and request cookies key? " + request.cookies.key);
 		if (doc) {
+            
 		console.log("id is ", id);
         db.collection("users").update(
-            {"username": request.session.key},
+            {"username": request.cookies.key},
             {
               $pull: {
-                    "tweets": {
-                          "id": parseInt(id)
-                    }
+                    "tweets": { "id": parseInt(id)}
                 } 
             },
             function (error, result) {
@@ -304,10 +306,12 @@ app.delete("/item/:id", function (request, response) {
                     response.json({ "status": "ERROR" });
                 } else {
                     db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
+                        
+                        console.log("this comparison.." + document.username);
                         if (error) {
                             console.log(error);
-                        } else if (document) {
-                            db.collection("tweets").remove({"id": parseInt(request.params.id)}, 1);
+                        } else if (document.username == request.cookies.key) {
+                            db.collection("tweets").remove({"id": parseInt(id)}, 1);
                             response.json({status: "SUCCESS"});
                         } else {
                             response.json({status: "FAILURE"});
@@ -372,6 +376,7 @@ app.post("/whoami", function (request, response) {
 
 //grading
 app.post("/search", function(request, response) {
+    
     //var currentLimit = 0;
     var timestamp = new Date().getTime(); //default current time
 	var limit = 25; //default 25
@@ -532,8 +537,6 @@ app.get("/user/:username", function (request, response) {
         if (document) {
             db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
                 if (doc) { 
-                    console.log("the username is " + username);
-                    
                     var following = document.following;
                     var followingCount = Object.keys(following).length;
                     
@@ -561,6 +564,7 @@ app.get("/user/:username", function (request, response) {
 
 //front end
 app.post("/user", function (request, response) {
+    
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         if (doc) { 
             db.collection("users").findOne({"username": request.cookies.key}, function (error, document) {
