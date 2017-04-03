@@ -89,8 +89,13 @@ app.post("/adduser", function (request, response) {
                             "followers": [],
                             "following": []
                         }; 
-                        db.collection("users").insert(document, {w: 1}, function(error, result) {});
-                        response.json({"status": "OK"});
+                        db.collection("users").insert(document, {w: 1}, function(error, result) {
+							if (error) {
+								console.log(error);
+							}
+							response.json({status: "OK"});
+						});
+                        //response.json({"status": "OK"});
                     }
                 });
             }
@@ -117,20 +122,35 @@ app.post("/login", function (request, response) {
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
                 //sets the cookiea
-				db.collection("users").insert(document, {w: 1}, function(error, result) {});
+				db.collection("users").insert(document, {w: 1}, function(error, result) {
+					if (error) {
+						console.log(error);
+					} else {
+					db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {
+						if (error) {
+							console.log(error);
+						} else {
+							response.cookie('key', username);
+							response.json({status: "OK"});
+						}
+						
+	
+					});
 
-				db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {});
+					}
+				});
+
 				
-				response.cookie('key', username);
+			//	response.cookie('key', username);
                 //request.session.username = username;
-                response.json({"status": "OK"});
+            //    response.json({"status": "OK"});
             } else {
-                response.json({"status":"ERROR", "Error": "INVALID LOGIN"});
+                response.json({status:"ERROR", error: "INVALID LOGIN"});
             }
         });
        
     } else {
-        response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
+        response.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
     }
     
 });
@@ -144,17 +164,20 @@ app.get("/logout", function(request, response) {
 		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
 		response.clearCookie("key");
 		console.log(request.cookies.key);
-    response.redirect('/login');
+    //response.redirect('/login');
 });
 
 //grading
 app.post("/logout", function (request, response) {
         console.log("IN LOGOUT POST");
         request.session = null;
-		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1, function(err) {
+
 		response.clearCookie("key");
 		console.log(request.cookies.key);
-        response.json({ "status": "OK" });
+        response.json({ status: "OK" });
+
+		});
         //response.redirect('/login');
 
 });
@@ -182,10 +205,18 @@ app.post("/verify", function (request, response) {
                 console.log("THE KEY IS " + document.verified);
                 if ( key == emailkey || key == "abracadabra") {
                     //console.log("IN HERE IN VERIFY");
-                    response.json({"status": "OK"});
+                    //response.json({status: "OK"});
                     db.collection("users").update(
                         { "email": email }, 
-                        { $set: { "verified": "yes" } } 
+                        { $set: { "verified": "yes" } }, function (err, doc) {
+							if (err) {
+								console.log(err);
+							} else {
+								response.json({status:"OK"});
+
+							}
+
+						} 
                     );
                 }
                 else { 
@@ -238,12 +269,13 @@ app.post("/additem", function (request, response) {
                         "timestamp": timestamp
                     };
                     
-                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}});
+                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}else{ response.json({status:"OK",id:document.id  });}});
+					/*
 					response.json({
 						status: "OK",
 						id: document.id
 					});
-					/* 
+					 
                     response.json ({
                         status: "OK",
                         item: document
