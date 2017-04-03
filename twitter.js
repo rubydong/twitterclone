@@ -208,16 +208,10 @@ app.post("/verify", function (request, response) {
                     //response.json({status: "OK"});
                     db.collection("users").update(
                         { "email": email }, 
-                        { $set: { "verified": "yes" } }, function (err, doc) {
-							if (err) {
-								console.log(err);
-							} else {
-								response.json({status:"OK"});
-
-							}
-
-						} 
+                        { $set: { "verified": "yes" } });
                     );
+
+					response.json({status:"OK"});
                 }
                 else { 
                     response.json({status: "ERROR", error: "INVALID KEY PLEASE TRY AGAIN"});
