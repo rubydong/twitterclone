@@ -478,10 +478,14 @@ app.post("/search", function(request, response) {
                 } else {
                     //traverse through tweets data base
                     db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
-                        if (val) 
+                        if (val)  {
                             tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
-                        else 
+						}
+                        else {
+	 
+							console.log("NUM:",tweetsArr.length);
                             response.json({status:"OK", items:tweetsArr});
+						}
                     });
                 }
             }
