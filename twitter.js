@@ -209,7 +209,7 @@ app.post("/verify", function (request, response) {
                     db.collection("users").update(
                         { "email": email }, 
                         { $set: { "verified": "yes" } });
-                    );
+                    
 
 					response.json({status:"OK"});
                 }
