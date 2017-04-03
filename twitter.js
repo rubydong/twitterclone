@@ -213,7 +213,6 @@ app.post("/additem", function (request, response) {
 		if (doc) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
-        
         db.collection("users").update(
             {"username": request.cookies.key},
             {
@@ -239,7 +238,6 @@ app.post("/additem", function (request, response) {
                     };
                     
                     db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}});
-                   
 					response.json({
 						status: "OK",
 						id: document.id
@@ -386,6 +384,7 @@ app.post("/whoami", function (request, response) {
 app.post("/search", function(request, response) {
     
     //var currentLimit = 0;
+	console.log("IN POST SEARCH");
     var timestamp = new Date().getTime(); //default current time
 	var limit = 25; //default 25
 	var query = ''; 
@@ -393,8 +392,13 @@ app.post("/search", function(request, response) {
     var following = "true"; //default true
     var currentLimit = 0;
     
-    if (request.body.limit) { limit = parseInt(request.body.limit); }
-	if (request.body.timestamp) { timestamp = request.body.timestamp; } //maybe * 1000...
+    if (request.body.limit) { 
+		limit = parseInt(request.body.limit); 
+		if (limit > 100) {
+			limit = 100;
+		}
+	}
+	if (request.body.timestamp) { timestamp = request.body.timestamp * 1000; } //maybe * 1000...
     if (request.body.query) {query = request.body.query;}
 	if (request.body.following) { following = request.body.following; }
     
