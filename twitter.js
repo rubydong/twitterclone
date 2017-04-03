@@ -239,11 +239,17 @@ app.post("/additem", function (request, response) {
                     };
                     
                     db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}});
-                    
+                   
+					response.json({
+						status: "OK",
+						id: document.id
+					});
+					/* 
                     response.json ({
                         status: "OK",
                         item: document
                     });
+					*/
                 }
             }
         );
