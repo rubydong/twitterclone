@@ -438,6 +438,7 @@ app.post("/search", function(request, response) {
                                 currentLimit++;
                             }
                         }
+						console.log("NUM:",tweetsArr.length);
                         response.json({status: "OK", items: tweetsArr});
                     }
                 });
@@ -454,6 +455,7 @@ app.post("/search", function(request, response) {
                                 var tweets = followingUser[0].tweets;
                                 //looking for the tweets of each one of the followings
                                 for (var j = 0; j < tweets.length; j++) {
+									if (currentLimit >= limit) break;
                                     if ( (tweets[j].content.indexOf(query) != -1) && (tweets[j].timestamp <= timestamp) && currentLimit < limit) {
                                         tweetsArr.push({
                                             id: tweets[j].id,
@@ -465,8 +467,11 @@ app.post("/search", function(request, response) {
                                     }
                                 }
                                 count++;
-                                if (count == last)
+                                if ((count == last) || currentLimit >= limit) {
+									
+									console.log("NUM:",tweetsArr.length);
                                     response.json({status: "OK", items: tweetsArr});
+								}
                             });
                         }
                     });  
