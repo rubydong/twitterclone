@@ -411,7 +411,9 @@ app.post("/search", function(request, response) {
     var username = request.body.username;
     var following = "true"; //default true
     var currentLimit = 0;
-    
+	
+	console.log("following", request.body.following);
+	console.log("limit", request.body.limit);    
     if (request.body.limit) { 
 		limit = parseInt(request.body.limit); 
 		if (limit > 100) {
@@ -490,7 +492,7 @@ app.post("/search", function(request, response) {
                         else {
 	 
 							console.log("3 NUM:",tweetsArr.length);
-							console.log(tweetsArr);
+	//						console.log(tweetsArr);
                             response.json({status:"OK", items:tweetsArr});
 						}
                     });
