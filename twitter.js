@@ -189,11 +189,12 @@ app.post("/verify", function (request, response) {
                     );
                 }
                 else { 
-                    response.json({"status": "ERROR", "Error": "INVALID KEY PLEASE TRY AGAIN"});
+                    response.json({status: "ERROR", error: "INVALID KEY PLEASE TRY AGAIN"});
                 }
             } else {
 				console.log("DOC WAS NOT FOUND");
 				console.log("email:",email);
+				response.json({status:"ERROR", error: "INVALID"});
 			}
         });
         
