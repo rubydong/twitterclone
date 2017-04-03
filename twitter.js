@@ -177,7 +177,7 @@ app.post("/verify", function (request, response) {
         db.collection("users").findOne({email: email}, function (err, document) {
             if (err){ 
                 console.log(err);
-            } else {
+            } else if (document) {
                 emailkey = document.verified;
                 console.log("THE KEY IS " + document.verified);
                 if ( key == emailkey || key == "abracadabra") {
@@ -191,7 +191,10 @@ app.post("/verify", function (request, response) {
                 else { 
                     response.json({"status": "ERROR", "Error": "INVALID KEY PLEASE TRY AGAIN"});
                 }
-            }
+            } else {
+				console.log("DOC WAS NOT FOUND");
+				console.log("email:",email);
+			}
         });
         
     } else {
