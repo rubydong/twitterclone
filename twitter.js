@@ -227,8 +227,9 @@ app.post("/additem", function (request, response) {
     var timestamp = new Date().getTime();
 	console.log("session key:",request.cookies.key);
 
-	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		if (doc) {
+//	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+//		if (doc) {
+		if (request.cookies.key != null) {
         var id = Math.round(Math.random()*99999 + 1) * 
         Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
         db.collection("users").update(
@@ -272,7 +273,7 @@ app.post("/additem", function (request, response) {
             {status: "error", error: "USER IS NOT LOGGED IN"}
         );
     }
-	});
+//	});
 	console.log("EXITED ADDITEM");
 });
 
@@ -281,8 +282,9 @@ app.get("/item/:id", function (request, response) {
     
     var id = request.params.id;
     //console.log("param id is.." + id);
-	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		if (doc) {
+	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		//if (doc) {
+		if (request.cookies.key != null) {
 		console.log("GET id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
@@ -305,15 +307,16 @@ app.get("/item/:id", function (request, response) {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
 	});
-});
+//});
 
 //grading
 app.delete("/item/:id", function (request, response) {
     var id = request.params.id;
-	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         //console.log("what is doc username " + JSON.stringify(doc));
         //console.log("and request cookies key? " + request.cookies.key);
-		if (doc) {
+		//if (doc) {
+		if (request.cookies.key != null) {
             
 		console.log("DELETE id is ", id);
         db.collection("users").update(
@@ -345,14 +348,15 @@ app.delete("/item/:id", function (request, response) {
     } else {
         response.json({status: "FAILURE"});
     }
-	});
+	//});
 });
 
 //front end
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		if (doc) {
+		//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		//if (doc) {
+		if (request.cookies.key != null) {
 		console.log("POST id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
 			if (error) { console.log(error); }
@@ -374,7 +378,7 @@ app.post("/item", function (request, response) {
     } else {
         response.json({status: "error", error: "USER IS NOT LOGGED IN"});
     }
-	});
+	//});
 });
 
 //front end
@@ -419,9 +423,9 @@ app.post("/search", function(request, response) {
     if (request.body.query) {query = request.body.query;}
 	if (request.body.following) { following = request.body.following; }
     
-    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-        if (doc) {
-            
+    //db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+       // if (doc) {
+         if (request.cookies.key != null) {   
             tweetsArr = new Array();
             if (username) {
                 db.collection("users").findOne({username: username}, function (error, user) {
@@ -495,7 +499,7 @@ app.post("/search", function(request, response) {
         } else {
             response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
         }
-    });
+    //});
 
 });
 
@@ -509,9 +513,9 @@ app.post("/follow", function (request, response) {
     
     var followbool = request.body.followbool;
     
-	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		if (doc) { 
-        
+	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+		//if (doc) { 
+        if (request.cookies.key != null) {
             var currentUser = request.cookies.key;
             var otherUser = request.body.username; //other user to folllow or unfollow
             //follow
@@ -565,7 +569,7 @@ app.post("/follow", function (request, response) {
         } else {
             response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-	});
+//	});
     
 });
                     
@@ -575,8 +579,9 @@ app.get("/user/:username", function (request, response) {
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {
-            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-                if (doc) { 
+         //   db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+           //     if (doc) { 
+			if (request.cookies.key != null) {
                     var following = document.following;
                     var followingCount = Object.keys(following).length;
                     
@@ -594,7 +599,7 @@ app.get("/user/:username", function (request, response) {
                 } else {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
-            });
+           // });
         }
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
@@ -636,8 +641,9 @@ app.get("/user/:username/followers", function (request, response) {
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {
-            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-                if (doc) { 
+          //  db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+            //    if (doc) { 
+				if (request.cookies.key != null) {
                     console.log("the username is " + username);
                     
                     var followers = document.followers;
@@ -649,7 +655,7 @@ app.get("/user/:username/followers", function (request, response) {
                 } else {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
-            });
+//            });
         }
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
@@ -663,8 +669,9 @@ app.get("/user/:username/following", function (request, response) {
     var username = request.params.username;
     db.collection("users").findOne({"username": username}, function (error, document) {
         if (document) {
-            db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-                if (doc) { 
+      //      db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
+//        ..        if (doc) { 
+		if (request.cookies.key != null) {
                     console.log("the username is " + username);
                     
                     var following = document.following;
@@ -676,7 +683,7 @@ app.get("/user/:username/following", function (request, response) {
                 } else {
                     response.json({status: "error", error: "USER IS NOT LOGGED IN"});
                 }
-            });
+//            });
         }
         else {
             response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
