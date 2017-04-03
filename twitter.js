@@ -478,7 +478,7 @@ app.post("/search", function(request, response) {
                 } else {
 					console.log("LIMIT IS",limit);
                     //traverse through tweets data base
-                    db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit+1).each(function(err, val) {
+                    db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
                         if (val)  {
                             tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
 						}
