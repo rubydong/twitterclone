@@ -76,7 +76,7 @@ app.post("/adduser", function (request, response) {
                     if (document) {
                         //email exists
                         exists = true;
-                        response.json({"status": "ERROR", "Error": "EMAIL ALREADY EXISTS"});
+                        response.json({status: "ERROR", error: "EMAIL ALREADY EXISTS"});
                     } else {
                         //username and email does not exist do this
                         //sendEmail (email, emailkey);
@@ -89,8 +89,13 @@ app.post("/adduser", function (request, response) {
                             "followers": [],
                             "following": []
                         }; 
-                        db.collection("users").insert(document, {w: 1});
-                        response.json({status: "OK"});
+                        db.collection("users").insert(document, {w: 1}, function(err,res) {
+							if (err) {
+								console.log("ERROR", err);
+							} else {
+								response.json({status:"OK"});
+							}
+						});;
                     }
                 });
             }
@@ -117,10 +122,6 @@ app.post("/login", function (request, response) {
         db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
             if (document) {
                 //sets the cookiea
-				db.collection("users").insert(document, {w: 1}, function(error, result) {
-					if (error) {
-						console.log(error);
-					} else {
 					db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {
 						if (error) {
 							console.log(error);
@@ -131,11 +132,6 @@ app.post("/login", function (request, response) {
 						
 	
 					});
-
-					}
-				});
-
-				
 			//	response.cookie('key', username);
                 //request.session.username = username;
             //    response.json({"status": "OK"});
