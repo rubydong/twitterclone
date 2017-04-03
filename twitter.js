@@ -438,7 +438,7 @@ app.post("/search", function(request, response) {
                                 currentLimit++;
                             }
                         }
-						console.log("NUM:",tweetsArr.length);
+						console.log("1 NUM:",tweetsArr.length);
                         response.json({status: "OK", items: tweetsArr});
                     }
                 });
@@ -469,7 +469,7 @@ app.post("/search", function(request, response) {
                                 count++;
                                 if ((count == last) || currentLimit >= limit) {
 									
-									console.log("NUM:",tweetsArr.length);
+									console.log("2 NUM:",tweetsArr.length);
                                     response.json({status: "OK", items: tweetsArr});
 								}
                             });
@@ -483,7 +483,7 @@ app.post("/search", function(request, response) {
 						}
                         else {
 	 
-							console.log("NUM:",tweetsArr.length);
+							console.log("3 NUM:",tweetsArr.length);
                             response.json({status:"OK", items:tweetsArr});
 						}
                     });
