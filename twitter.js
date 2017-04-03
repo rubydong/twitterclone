@@ -155,7 +155,7 @@ app.post("/logout", function (request, response) {
 		response.clearCookie("key");
 		console.log(request.cookies.key);
         response.json({ "status": "OK" });
-        response.redirect('/login');
+        //response.redirect('/login');
 
 });
 
@@ -264,13 +264,13 @@ app.post("/additem", function (request, response) {
 app.get("/item/:id", function (request, response) {
     
     var id = request.params.id;
-    console.log("param id is.." + id);
+    //console.log("param id is.." + id);
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
 		if (doc) {
 		console.log("id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
-			console.log(document);
+			//console.log(document);
             if (document) {
                 response.json({
                     status: "OK",
