@@ -450,7 +450,7 @@ app.post("/search", function(request, response) {
                     }
                 });
             } else {
-                if (following == "true") {   
+                if (following == true) {   
                     db.collection("users").find({username:request.cookies.key}).toArray(
                     function(err, user) {
                         var count = 0;
@@ -483,6 +483,8 @@ app.post("/search", function(request, response) {
                         }
                     });  
                 } else {
+
+					var done = false;
 					console.log("LIMIT IS",limit);
                     //traverse through tweets data base
                     db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
@@ -493,7 +495,10 @@ app.post("/search", function(request, response) {
 	 
 							console.log("3 NUM:",tweetsArr.length);
 	//						console.log(tweetsArr);
+							if (done == false) {
                             response.json({status:"OK", items:tweetsArr});
+							done = true;
+							}
 						}
                     });
                 }
