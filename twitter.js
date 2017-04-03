@@ -285,7 +285,7 @@ app.get("/item/:id", function (request, response) {
     //console.log("param id is.." + id);
 	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
 		if (doc) {
-		console.log("id is ", id);
+		console.log("GET id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
 			if (error) console.log(error);
 			//console.log(document);
@@ -317,7 +317,7 @@ app.delete("/item/:id", function (request, response) {
         //console.log("and request cookies key? " + request.cookies.key);
 		if (doc) {
             
-		console.log("id is ", id);
+		console.log("DELETE id is ", id);
         db.collection("users").update(
             {"username": request.cookies.key},
             {
@@ -355,7 +355,7 @@ app.post("/item", function (request, response) {
     var id = request.body.itemId;
 		db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
 		if (doc) {
-		console.log("id is ", id);
+		console.log("POST id is ", id);
         db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
 			if (error) { console.log(error); }
 			
