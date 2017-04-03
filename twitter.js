@@ -89,13 +89,8 @@ app.post("/adduser", function (request, response) {
                             "followers": [],
                             "following": []
                         }; 
-                        db.collection("users").insert(document, {w: 1}, function(error, result) {
-							if (error) {
-								console.log(error);
-							}
-							response.json({status: "OK"});
-						});
-                        //response.json({"status": "OK"});
+                        db.collection("users").insert(document, {w: 1});
+                        response.json({status: "OK"});
                     }
                 });
             }
