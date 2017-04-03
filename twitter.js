@@ -17,8 +17,8 @@ app.use(cookieSession({
     keys: [(Math.random() + 1).toString(36).substring(7)]
 }));
 
-
-MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
+MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
+//MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     if (error) {
         return console.dir(error);
@@ -414,6 +414,7 @@ app.post("/search", function(request, response) {
 		}
 	}
 	if (request.body.timestamp) { timestamp = request.body.timestamp * 1000; } //maybe * 1000...
+	console.log("TIMESTAMP:", timestamp);
     if (request.body.query) {query = request.body.query;}
 	if (request.body.following) { following = request.body.following; }
     
