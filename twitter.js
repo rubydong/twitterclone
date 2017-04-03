@@ -254,18 +254,15 @@ app.post("/additem", function (request, response) {
                         "timestamp": timestamp
                     };
                     
-                    db.collection("tweets").insert(document, {w: 1}, function(error, result) {if(error){console.log(error);}else{ response.json({status:"OK",id:document.id  });}});
-					/*
-					response.json({
-						status: "OK",
-						id: document.id
-					});
-					 
-                    response.json ({
-                        status: "OK",
-                        item: document
-                    });
-					*/
+                    db.collection("tweets").insert(document, {w: 1}, 
+						function(error, result) {
+							if(error){
+								console.log(error);
+							}else{ 
+								response.json({status:"OK",id:document.id  });
+							}
+						}
+					);
                 }
             }
         );
