@@ -479,10 +479,12 @@ app.post("/search", function(req, res) {
 
 					db.collection("users").findOne({username: req.cookies.key}, function(err, user) {
 						var following = user.following;
+						console.log(following);
 						db.collection("tweets").find({username:{$in: following}}).limit(limit).each(
 						function(err,val) {
 						
 						if (val) {
+							console.log("found val", val);
 							tweetsArr.push({
 								id: val.id,
 								username: val.username,
