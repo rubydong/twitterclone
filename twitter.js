@@ -121,7 +121,7 @@ app.post("/login", function (request, response) {
     
     if (username && password) {
 		console.log("Attempt login with user: %s pass: %s", username, password);
-        db.collection("users").findOne({ "username": username, "password": password }, {"name": 1}, (error, document) => {
+        db.collection("users").findOne({ "username": username, "password": password }, {"name": 1}, (error, doc) => {
             if (doc) {
 				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
 					if (err) {
