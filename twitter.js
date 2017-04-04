@@ -442,13 +442,14 @@ app.post("/search", function(req, res) {
 								limitCounter++;
 							}
 						}
+                        console.log("Number of tweets", tweetsArr.length);
 						res.json({status: "OK",items: tweetsArr});
 					} else {
 						res.json({status: "ERROR",error: "USER IS NOT FOUND"});
 					}
 				});
 			} else {
-				if (following == "FORNOW") {
+				if (following == true) {
 
 					db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
 						var following = user.following;
@@ -461,6 +462,7 @@ app.post("/search", function(req, res) {
     								timestamp: val.timestamp
     							});
     						} else {
+                                console.log("Number of tweets", tweetsArr.length);
     							res.json({status: "OK",items: tweetsArr});
     						}
 						});
@@ -480,6 +482,7 @@ app.post("/search", function(req, res) {
 								timestamp: val.timestamp
 							});
 						} else {
+                            console.log("Number of tweets", tweetsArr.length);
 							res.json({status: "OK",items: tweetsArr});
 						}
 					});
