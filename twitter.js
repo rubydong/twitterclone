@@ -413,7 +413,6 @@ app.post("/search", function(req, res) {
 
 	if (req.body.limit) {
 		limit = parseInt(req.body.limit);
-		limit = limit > 100 ? 100 : limit;
 	}
 	if (req.body.timestamp)
 		timestamp = parseInt(req.body.timestamp) * 1000;
@@ -478,21 +477,37 @@ app.post("/search", function(req, res) {
 						// {content: {$regex: /.*/ }},
 						{timestamp: {$lte: timestamp}}
 						]
-					}).limit(limit).each((err, val) => {
-						if (val) {
+					}).limit(limit).toArray((err, val) => {
+                        console.log("Number returned from toArray", val.length);
+
+                        for (var i = 0; i < val.length; i++) {
                             if (limitCounter < limit) {
-    							tweetsArr.push({
-    								id: val.id,
-    								username: val.username,
-    								content: val.content,
-    								timestamp: val.timestamp
-    							});
+                                tweetsArr.push({
+                                     id: val.id,
+                                     username: val.username,
+                                     content: val.content,
+                                     timestamp: val.timestamp
+                                });
                                 limitCounter++;
+                            } else {
+                                break;
                             }
-						} else {
-                            console.log("Number of tweets", tweetsArr.length);
-							res.json({status: "OK",items: tweetsArr});
-						}
+                        }
+                        console.log("Number of tweets", tweetsArr.length);
+                        res.json({status: "OK",items: tweetsArr});
+						// if (val) {
+      //                       if (limitCounter < limit) {
+    		// 					tweetsArr.push({
+    		// 						id: val.id,
+    		// 						username: val.username,
+    		// 						content: val.content,
+    		// 						timestamp: val.timestamp
+    		// 					});
+      //                           limitCounter++;
+      //                       }
+						// } else {
+            
+						// }
 					});
 				}
 			}
