@@ -208,60 +208,54 @@ app.post("/verify", function (req, res) {
 });
 
 //grading
-app.post("/additem", function (request, response) { 
-    var content = request.body.content;
-    //if not logged in error
-    var timestamp = new Date().getTime();
-	console.log("session key:",request.cookies.key);
+app.post("/additem", function (req, res) {
+    console.log("IN ADDITEM POST");
 
-//	db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-//		if (doc) {
-		if (request.cookies.key != null) {
-        var id = Math.round(Math.random()*99999 + 1) * 
-        Math.round(Math.random()*99999+1) + Math.round(Math.random()*99999 + 1);
-        db.collection("users").update(
-            {"username": request.cookies.key},
-            {
-              $push: {
-                    "tweets": {
-                          "id": id,   
-                          "username": request.cookies.key,
-                          "content": content,
-                          "timestamp": timestamp
-                          
+    var content = req.body.content;
+    var timestamp = new Date().getTime();
+
+	db.collection("sessions").findOne({sessionkey: req.cookies.key},{sessionkey: 1}, (error, doc) => {
+		if (doc) {
+            var id = Math.round(Math.random()*99999+1)*
+                     Math.round(Math.random()*99999+1)+
+                    Math.round(Math.random()*99999+1);
+
+            db.collection("users").update({username: req.cookies.key},
+                {
+                  $push: {
+                        "tweets": {
+                              "id": id,   
+                              "username": req.cookies.key,
+                              "content": content,
+                              "timestamp": timestamp
+                        }
+                    } 
+                }, (error, result) => {
+                    if (error) {
+                        console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
+                        res.json({status: "ERROR" });
+                    } else {
+                        var document = {
+                            "id": id,   
+                            "username": request.cookies.key,
+                            "content": content,
+                            "timestamp": timestamp
+                        };
+                        
+                        db.collection("tweets").insert(document, {w: 1}, (error, result) => {
+    							if (error) {
+    								console.error(new Error("ERROR INSERTING TWEET TO DB"));
+                                    res.json(status: "ERROR");
+    							} else { 
+    								res.json({status: "OK", id: doc.id});
+    							}
+    					});
                     }
-                } 
-            },
-            function (error, result) {
-                if (error) {
-                    response.json({ "status": "ERROR" });
-                } else {
-                    var document = {
-                        "id": id,   
-                        "username": request.cookies.key,
-                        "content": content,
-                        "timestamp": timestamp
-                    };
-                    
-                    db.collection("tweets").insert(document, {w: 1}, 
-						function(error, result) {
-							if(error){
-								console.log(error);
-							}else{ 
-								response.json({status:"OK",id:document.id  });
-							}
-						}
-					);
-                }
-            }
-        );
-    } else {
-        response.json (
-            {status: "error", error: "USER IS NOT LOGGED IN"}
-        );
-    }
-//	});
-	console.log("EXITED ADDITEM");
+            });
+        } else {
+            res.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
 });
 
 //grading
