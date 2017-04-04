@@ -475,7 +475,7 @@ app.post("/search", function(req, res) {
                     console.log("FOLLOWING IS FALSE");
 					db.collection("tweets").find(
 					{$and: [
-						{content: {$regex: /.*/ }},
+						// {content: {$regex: /.*/ }},
 						{timestamp: {$lte: timestamp}}
 						]
 					}).limit(limit).each((err, val) => {
