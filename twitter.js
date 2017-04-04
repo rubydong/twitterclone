@@ -401,7 +401,7 @@ function checkConditions(tweets, query, timestamp) {
 }
 
 app.post("/search", function(req, res) {
-	console.log("IN POST SEARCH");
+	console.log("IN SEARCH POST");
 
 	var timestamp = new Date().getTime();
 	var limit = 25;
@@ -414,7 +414,6 @@ app.post("/search", function(req, res) {
 		limit = parseInt(req.body.limit);
 		limit = limit > 100 ? 100 : limit;
 	}
-
 	if (req.body.timestamp)
 		timestamp = parseInt(req.body.timestamp) * 1000;
 	if (req.body.query)
@@ -422,24 +421,16 @@ app.post("/search", function(req, res) {
 	if (req.body.following)
 		following = req.body.following;
 
-	db.collection("sessions").findOne(
-	{"sessionkey": req.cookies.key},
-	{"sessionkey": 1},
-	function (error, doc) {
+	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
 
 			if (username) {
-
-				db.collection("users").findOne(
-				{"username": username},
-				function (error, user) {
+				db.collection("users").findOne({"username": username}, (error, user) => {
 					if (user) {
 						var tweets = user.tweets;
 
-						for (var i = 0; i < tweets.length; i++) {
-							if (limitCounter > limit)
-								break;
+						for (var i = 0; i < tweets.length && limitCounter <= limit; i++) {
 							if (checkConditions(tweets[i],query,timestamp)) {
 								tweetsArr.push({
 									id: tweets[i].id,
@@ -450,82 +441,36 @@ app.post("/search", function(req, res) {
 								limitCounter++;
 							}
 						}
-						console.log("inputted username");
-						res.json({
-							status: "OK",
-							items: tweetsArr
-						});
+						res.json({status: "OK",items: tweetsArr});
 					} else {
-						res.json({
-							status: "ERROR",
-							error: "USER IS NOT FOUND"
-						});
+						res.json({status: "ERROR",error: "USER IS NOT FOUND"});
 					}
-
 				});
-
 			} else {
 				if (following == "FORNOW") {
 
-					db.collection("users").findOne({username: req.cookies.key}, function(err, user) {
+					db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
 						var following = user.following;
-						console.log(following);
-						db.collection("tweets").find({username:{$in: following}}).limit(limit).each(
-						function(err,val) {
-						
-						if (val) {
-							console.log("found val", val);
-							tweetsArr.push({
-								id: val.id,
-								username: val.username,
-								content: val.content,
-								timestamp: val.timestamp
-							});
-						} else {
-							console.log("following is true", tweetsArr.length);
-							res.json({
-								status: "OK",
-								items: tweetsArr
-							});
-						}
-
+						db.collection("tweets").find({username:{$in: following}}).limit(limit).each((err,val) => {
+    						if (val) {
+    							tweetsArr.push({
+    								id: val.id,
+    								username: val.username,
+    								content: val.content,
+    								timestamp: val.timestamp
+    							});
+    						} else {
+    							res.json({status: "OK",items: tweetsArr});
+    						}
 						});
 					});
-					/*
-					db.collection("users").find({username: req.cookies.key}).toArray(
-					function (err, user) {
-						var count = 0;
-						var last = user[0].following.length;
-
-						for (var i = 0; i < last && limitCounter <= limit; i++) {
-							db.collection("users").find({username:user[0].following[i]}).toArray(
-							function(err, followingUser) {
-								var tweets = followingUser[0].tweets;
-
-								for (var j = 0; j < tweets.length && limitCounter <= limit; j++) {
-									if (checkConditions(tweets[i])) {
-										tweetsArr.push({
-					                                            id: tweets[j].id,
-					                                            username: tweets[j].username,
-					                                            content: tweets[j].content,
-					                                            timestamp: tweets[j].timestamp
-					                                        });
-					                                        currentLimit++;
-									}
-								}
-							});
-						}
-					});
-						res.json({status:"OK",items:tweetsArr});
-						console.log("done searching");
-					*/
 				} else {
 					db.collection("tweets").find(
 					{$and: [
 						{content: {$regex: query}},
 						{timestamp: {$lte: timestamp}}
 						]
-					}).limit(limit).each(function(err, val) {
+					}).limit(limit).each((err, val) => {
 						if (val) {
 							tweetsArr.push({
 								id: val.id,
@@ -534,25 +479,17 @@ app.post("/search", function(req, res) {
 								timestamp: val.timestamp
 							});
 						} else {
-							console.log("TWEETS", tweetsArr.length);
-							res.json({
-								status: "OK",
-								items: tweetsArr
-							});
+							res.json({status: "OK",items: tweetsArr});
 						}
 					});
 				}
 			}
 		} else {
-			res.json({
-				status: "ERROR",
-				error: "USER IS NOT LOGGED IN"
-			});
+			res.json({status: "ERROR",error: "USER IS NOT LOGGED IN"});
 		}
-
 	});
-
 });
+
 //front end
 app.get("/follow", function (request, response) {
     response.sendFile(path.join(__dirname + "/follow.html")); 
