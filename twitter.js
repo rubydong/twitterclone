@@ -487,7 +487,22 @@ app.post("/search", function(request, response) {
 					var done = false;
 					console.log("LIMIT IS",limit);
                     //traverse through tweets data base
-                    db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
+					var arr_list =  db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).toArray();
+					if (arr_list.length > 0) {
+						for (var i = 0; i < limit; i++) {
+							tweetsArr.push({
+								id: arr_list[i].id,
+								username: arr_list[i].username,
+								content: arr_list[i].content,
+								timestamp: arr_list[i].timestamp
+							});
+						}
+					}
+
+					console.log("3 NUM:", tweetsArr.length);
+					response.json({status:"OK", items:tweetsArr});
+/*
+db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
                         if (val)  {
                             tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
 						}
@@ -500,7 +515,7 @@ app.post("/search", function(request, response) {
 							done = true;
 							}
 						}
-                    });
+                    });*/
                 }
             }
         } else {
