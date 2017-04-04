@@ -460,6 +460,7 @@ app.post("/search", function(req, res) {
 								limitCounter++;
 							}
 						}
+						console.log("inputted username");
 						res.json({
 							status: "OK",
 							items: tweetsArr
@@ -475,6 +476,30 @@ app.post("/search", function(req, res) {
 
 			} else {
 				if (following == true) {
+
+					db.collection("users").findOne({username: req.cookies.key}, function(err, user) {
+						var following = user.following;
+						db.collections("tweets").find({username:{$in: following}}).limit(limit).each(
+						function(err,val) {
+						
+						if (val) {
+							tweetsArr.push({
+								id: val.id,
+								username: val.username,
+								content: val.content,
+								timestamp: val.timestamp
+							});
+						} else {
+							console.log("following is true", tweetsArr.length);
+							res.json({
+								status: "OK",
+								items: tweetsArr
+							});
+						}
+
+						}
+					});
+					/*
 					db.collection("users").find({username: req.cookies.key}).toArray(
 					function (err, user) {
 						var count = 0;
@@ -501,6 +526,7 @@ app.post("/search", function(req, res) {
 					});
 						res.json({status:"OK",items:tweetsArr});
 						console.log("done searching");
+					*/
 				} else {
 					db.collection("tweets").find(
 					{$and: [
