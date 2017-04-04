@@ -265,15 +265,12 @@ app.get("/item/:id", function (request, response) {
     var id = request.params.id;
     //console.log("param id is.." + id);
 	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
-        if (error) {
-            console.error(new Error("NO SESSION AVAILABLE"));
-            response.json({status: "ERROR"});
-        } else if (doc) {
+        if (doc) {
             db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
                 if (error) {
-                    console.error(new Error("COULD NOT FIND TWEET WITH ID", id, error));
+                    console.error(new Error("ERROR SEARCHING FOR TWEET WITH ID", id, error));
                     response.json({status: "ERROR"});
-                } else {
+                } else if (document) {
                     response.json(
                         {
                             status: "OK",
@@ -284,11 +281,14 @@ app.get("/item/:id", function (request, response) {
                                 timestamp: document.timestamp
                             }
                         });
+                } else {
+                    console.error(new Error("NO TWEET FOUND WITH ID", id));
+                    response.json({status: "ERROR"});
                 }
             });
         } else {
-            console.error(new Error("COULD NOT FIND TWEET WITH ID", id));
-            response.json({status:"ERROR", error: "NO TWEET WITH ID"});
+            console.error(new Error("NO SESSION AVAILABLE"));
+            response.json({status: "ERROR"});
         }
     });
 });
