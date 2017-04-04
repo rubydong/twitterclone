@@ -260,34 +260,35 @@ app.post("/additem", function (req, res) {
 
 //grading
 app.get("/item/:id", function (request, response) {
-    
+    console.log("IN ITEM/:id GET");
+
     var id = request.params.id;
     //console.log("param id is.." + id);
-	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		//if (doc) {
-		if (request.cookies.key != null) {
-		console.log("GET id is ", id);
-        db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
-			if (error) console.log(error);
-			//console.log(document);
-            if (document) {
-                response.json({
-                    status: "OK",
-                    item: {
-                        id: document.id,
-                        username: document.username,
-                        content: document.content,
-                        timestamp: document.timestamp
-                    }
-                });
-            } else {
-                response.json( { status: "error", error: "THIS IS AN INVALID ID" });
-            }
-        });
-    } else {
-        response.json({status: "error", error: "USER IS NOT LOGGED IN"});
-    }
-	});
+	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
+        if (error) {
+            console.error(new Error("NO SESSION AVAILABLE"));
+            response.json({status: "ERROR"});
+        } else {
+            db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
+                if (error) {
+                    console.error(new Error("COULD NOT FIND TWEET WITH ID", id, error));
+                    response.json({status: "ERROR"});
+                } else {
+                    response.json(
+                        {
+                            status: "OK",
+                            item: {
+                                id: document.id,
+                                username: document.username,
+                                content: document.content,
+                                timestamp: document.timestamp
+                            }
+                        });
+                }
+            });
+        }
+    });
+});
 //});
 
 //grading
