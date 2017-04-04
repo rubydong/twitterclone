@@ -180,10 +180,10 @@ app.post("/verify", function (req, res) {
 
     if (e_email && e_key) {
         db.collection("users").findOne({email: e_email}, (err, doc) => {
-            if (err){ 
+            if (err) { 
                 console.error(new Error("DID NOT FIND USER:", e_email, err));
                 res.json({status: "ERROR"});
-            } else {
+            } else if (doc) {
                 e_emailkey = doc.verified;
                 if (e_key == e_emailkey || e_key == "abracadabra") {
                     db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
@@ -198,6 +198,8 @@ app.post("/verify", function (req, res) {
                 } else { 
                     res.json({status: "ERROR", error: "INVALID KEY PLEASE TRY AGAIN"});
                 }
+            } else {
+                res.json({status: "ERROR", error: "No email found"});
             }
         });
     } else {
