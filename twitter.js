@@ -496,7 +496,6 @@ app.post("/search", function(req, res) {
                         }
                         console.log("Number of tweets", tweetsArr.length);
                         console.log(tweetsArr);
-                        console.log(JSON.stringify({items: tweetsArr}));
                         res.json({status: "OK",items: tweetsArr});
 					});
 				}
