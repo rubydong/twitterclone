@@ -475,7 +475,7 @@ app.post("/search", function(req, res) {
 				});
 
 			} else {
-				if (following == true) {
+				if (following == "FORNOW") {
 
 					db.collection("users").findOne({username: req.cookies.key}, function(err, user) {
 						var following = user.following;
