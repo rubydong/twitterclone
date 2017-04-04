@@ -237,7 +237,7 @@ app.post("/additem", function (req, res) {
                     } else {
                         var document = {
                             "id": id,   
-                            "username": request.cookies.key,
+                            "username": req.cookies.key,
                             "content": content,
                             "timestamp": timestamp
                         };
