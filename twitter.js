@@ -498,19 +498,6 @@ app.post("/search", function(req, res) {
                         console.log(tweetsArr);
                         console.log(JSON.stringify({items: tweetsArr}));
                         res.json({status: "OK",items: tweetsArr});
-						// if (val) {
-      //                       if (limitCounter < limit) {
-    		// 					tweetsArr.push({
-    		// 						id: val.id,
-    		// 						username: val.username,
-    		// 						content: val.content,
-    		// 						timestamp: val.timestamp
-    		// 					});
-      //                           limitCounter++;
-      //                       }
-						// } else {
-            
-						// }
 					});
 				}
 			}
