@@ -537,18 +537,20 @@ app.post("/search", function(req, res) {
 						{timestamp: {$lte: timestamp}}
 						]
 					}).limit(limit).each(function(err, val) {
-						if (val)
+						if (val) {
 							tweetsArr.push({
 								id: val.id,
 								username: val.username,
 								content: val.content,
 								timestamp: val.timestamp
 							});
-						else
+						} else {
+							console.log("TWEETS", tweetsArr.length);
 							res.json({
 								status: "OK",
 								items: tweetsArr
 							});
+						}
 					});
 				}
 			}
