@@ -17,9 +17,9 @@ app.use(cookieSession({
     keys: [(Math.random() + 1).toString(36).substring(7)]
 }));
 
-MongoClient.connect("mongodb://130.245.168.183:27017/twitter",function(error,database) {
+//MongoClient.connect("mongodb://130.245.168.183:27017/twitter",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
-//MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
+MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     if (error) {
         return console.dir(error);
@@ -401,147 +401,141 @@ app.post("/whoami", function (request, response) {
 
 
 //grading
-app.post("/search", function(request, response) {
-    
-    //var currentLimit = 0;
+function checkConditions(tweets, query, timestamp) {
+	if (tweets.content.indexOf(query) == -1)
+		return false;
+	else if (tweets.timestamp > timestamp)
+		return false;
+	else
+		return true;
+}
+
+app.post("/search", function(req, res) {
 	console.log("IN POST SEARCH");
-    var timestamp = new Date().getTime(); //default current time
-	var limit = 25; //default 25
-	var query = ''; 
-    var username = request.body.username;
-    var following = "true"; //default true
-    var currentLimit = 0;
-	
-	console.log("following", request.body.following);
-	console.log("limit", request.body.limit);    
-    if (request.body.limit) { 
-		limit = parseInt(request.body.limit); 
-		if (limit > 100) {
-			limit = 100;
-		}
+
+	var timestamp = new Date().getTime();
+	var limit = 25;
+	var query = '';
+	var username = req.body.username;
+	var following = true;
+	var limitCounter = 0;
+
+	if (req.body.limit) {
+		limit = parseInt(req.body.limit);
+		limit = limit > 100 ? 100 : limit;
 	}
-	if (request.body.timestamp) { timestamp = request.body.timestamp * 1000; } //maybe * 1000...
-	console.log("TIMESTAMP:", timestamp);
-    if (request.body.query) {query = request.body.query;}
-	if (request.body.following) { following = request.body.following; }
-    
-    //db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-       // if (doc) {
-         if (request.cookies.key != null) {   
-            tweetsArr = new Array();
-            if (username) {
-                db.collection("users").findOne({username: username}, function (error, user) {
-                    if (user) {
-                        var tweets = user.tweets;
-                        for (var i = 0; i < tweets.length; i++) {
-                            if ((tweets[i].content.indexOf(query) != -1) && (tweets[i].timestamp <= timestamp) && currentLimit < limit) {
-                                //console.log(tweets[i]);
-                                tweetsArr.push({
-                                    id: tweets[i].id,
-                                    username: tweets[i].username,
-                                    content: tweets[i].content,
-                                    timestamp: tweets[i].timestamp
-                                });
-                                currentLimit++;
-                            }
-                        }
-						console.log("1 NUM:",tweetsArr.length);
-                        response.json({status: "OK", items: tweetsArr});
-                    }
-                });
-            } else {
-                if (following == true) {   
-					
-                    db.collection("users").findOne({username:request.cookies.key}, function(err, user) {
-                    	
-                        var count = 0;
-                        var last = user.following.length;
-                        //looking for the followings
-						var break1 = false;
-						var break2 = false;
 
-						if (last > 0) {
-                        for (var i = 0; i < last; i++) {
-								console.log("last is", last);
-                           db.collection("users").findOne({username:user.following[i]}, function(err, usr) {
-								console.log("here");
-                                var tweets = usr.tweets;
-                                //looking for the tweets of each one of the followings
-                                for (var j = 0; j < tweets.length; j++) {
-                                    if ( (tweets[j].content.indexOf(query) != -1) && (tweets[j].timestamp <= timestamp) && currentLimit < limit) {
-                                        tweetsArr.push({
-                                            id: tweets[j].id,
-                                            username: tweets[j].username,
-                                            content: tweets[j].content,
-                                            timestamp: tweets[j].timestamp
-                                        });
-                                        currentLimit++;
-                                    }
-									if (currentLimit >= limit) {
-										break1 = true;
-										break;
-									}
-                                }
-                                count++;
-                                if ((count == last) || currentLimit >= limit) {
-									console.log("2 NUM:",tweetsArr.length);
-                                    response.json({status: "OK", items: tweetsArr});
-									break2 = true;
-									//break;
-								}
-							});
-                        
-						} 
-						} else {
-							console.log("EMPTY");
-							response.json({status:"OK", items:tweetsArr});
-						}
-						
-                    }); 
-					console.log("exit 2"); 
-                } else {
+	if (req.body.timestamp)
+		timestamp = parseInt(req.body.timestamp) * 1000;
+	if (req.body.query)
+		query = req.body.query;
+	if (req.body.following)
+		following = req.body.following;
 
-					var done = false;
-					console.log("LIMIT IS",limit);
-                    //traverse through tweets data base
-					var arr_list =  db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).toArray();
-					if (arr_list.length > 0) {
-						for (var i = 0; i < limit; i++) {
-							tweetsArr.push({
-								id: arr_list[i].id,
-								username: arr_list[i].username,
-								content: arr_list[i].content,
-								timestamp: arr_list[i].timestamp
-							});
-						}
-					}
+	db.collection("sessions").findOne(
+	{"sessionkey": req.cookies.key},
+	{"sessionkey": 1},
+	function (error, doc) {
+		if (doc) {
+			tweetsArr = new Array();
 
-					console.log("3 NUM:", tweetsArr.length);
-					response.json({status:"OK", items:tweetsArr});
-/*
-db.collection("tweets").find({$and: [{content: {$regex: query}}, {timestamp: {$lte: timestamp}}]}).limit(limit).each(function(err, val) {
-                        if (val)  {
-                            tweetsArr.push({id:val.id,username:val.username,content:val.content,timestamp:val.timestamp}); 
-						}
-                        else {
-	 
-							console.log("3 NUM:",tweetsArr.length);
-	//						console.log(tweetsArr);
-							if (done == false) {
-                            response.json({status:"OK", items:tweetsArr});
-							done = true;
+			if (username) {
+
+				db.collection("users").findOne(
+				{"username": username},
+				function (error, user) {
+					if (user) {
+						var tweets = user.tweets;
+
+						for (var i = 0; i < tweets.length; i++) {
+							if (limitCounter > limit)
+								break;
+							if (checkConditions(tweets[i],query,timestamp)) {
+								tweetsArr.push({
+									id: tweets[i].id,
+									username: tweets[i].username,
+									content: tweets[i].content,
+									timestamp: tweets[i].timestamp
+								});
+								limitCounter++;
 							}
 						}
-                    });*/
-                }
-            }
-        } else {
-            response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
-        }
-    //});
+						res.json({
+							status: "OK",
+							items: tweetsArr
+						});
+					} else {
+						res.json({
+							status: "ERROR",
+							error: "USER IS NOT FOUND"
+						});
+					}
+
+				});
+
+			} else {
+				if (following == true) {
+					db.collections("users").find({username: req.cookies.key}).toArray(
+					function (err, user) {
+						var count = 0;
+						var last = user[0].following.length;
+
+						for (var i = 0; i < last && limitCounter <= limit; i++) {
+							db.collection("users").find({username:user[0].following[i]}).toArray(
+							function(err, followingUser) {
+								var tweets = followingUser[0].tweets;
+
+								for (var j = 0; j < tweets.length && limitCounter <= limit; j++) {
+									if (checkConditions(tweets[i])) {
+										tweetsArr.push({
+					                                            id: tweets[j].id,
+					                                            username: tweets[j].username,
+					                                            content: tweets[j].content,
+					                                            timestamp: tweets[j].timestamp
+					                                        });
+					                                        currentLimit++;
+									}
+								}
+
+								count++;
+								if (count == last || limitCounter > limit)
+									res.json({status:"OK",items:tweetsArr});
+							});
+						}
+					});
+						console.log("done searching");
+				} else {
+					db.collection("tweets").find(
+					{$and: [
+						{content: {$regex: query}},
+						{timestamp: {$lte: timestamp}}
+						]
+					}).limit(limit).each(function(err, val) {
+						if (val)
+							tweetsArr.push({
+								id: val.id,
+								username: val.username,
+								content: val.content,
+								timestamp: val.timestamp
+							});
+						else
+							res.json({
+								status: "OK",
+								items: tweetsArr
+							});
+					});
+				}
+			}
+		} else {
+			res.json({
+				status: "ERROR",
+				error: "USER IS NOT LOGGED IN"
+			});
+		}
+
+	});
 
 });
-
 //front end
 app.get("/follow", function (request, response) {
     response.sendFile(path.join(__dirname + "/follow.html")); 
