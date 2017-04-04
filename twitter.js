@@ -479,7 +479,7 @@ app.post("/search", function(req, res) {
 
 					db.collection("users").findOne({username: req.cookies.key}, function(err, user) {
 						var following = user.following;
-						db.collections("tweets").find({username:{$in: following}}).limit(limit).each(
+						db.collection("tweets").find({username:{$in: following}}).limit(limit).each(
 						function(err,val) {
 						
 						if (val) {
