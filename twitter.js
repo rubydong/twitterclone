@@ -247,7 +247,7 @@ app.post("/additem", function (req, res) {
     								console.error(new Error("ERROR INSERTING TWEET TO DB"));
                                     res.json({status: "ERROR"});
     							} else { 
-    								res.json({status: "OK", id: doc.id});
+    								res.json({status: "OK", id: id});
     							}
     					});
                     }
