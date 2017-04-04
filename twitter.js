@@ -36,7 +36,7 @@ MongoClient.connect("mongodb://localhost:27017/twitter", (err,database) => {
 
 //front end
 app.get("/adduser", function (request, response) {
-    response.sendFile (path.join(__dirname + "/adduser.html"));
+    response.sendFile(path.join(__dirname + "/adduser.html"));
 });
 
 function sendEmail(email, key) {
@@ -113,18 +113,18 @@ app.post("/login", function (request, response) {
     
     if (username && password) {
 		console.log("Attempt login with user: %s pass: %s", username, password);
-        db.collection("users").findOne({ "username": username, "password": password }, {"name": 1}, (error, doc) => {
+        db.collection("users").findOne({"username": username,"password": password}, {"name": 1}, (error, doc) => {
             if (doc) {
 				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
 					if (err) {
-						console.log("ERROR attempting login:", err);
+						console.error(new Error("ERROR attempting login:", err));
 					} else {
-						response.cookie('key', username);
+						response.cookie('key', username); // used to communicate with sessionkey in db
 						response.json({status: "OK"});
 					}
 				});
             } else {
-				console.log(username, password);
+				console.error(new Error("LOGIN FAILED with",username,password));
                 response.json({status:"ERROR", error: "INVALID LOGIN"});
             }
         });
@@ -148,16 +148,17 @@ app.get("/logout", function(request, response) {
 //grading
 app.post("/logout", function (request, response) {
         console.log("IN LOGOUT POST");
-        request.session = null;
-		db.collection("sessions").remove({"sessionkey": request.cookies.key},1, function(err) {
 
-		response.clearCookie("key");
-		console.log(request.cookies.key);
-        response.json({ status: "OK" });
-
+		db.collection("sessions").remove({"sessionkey": request.cookies.key},1, (err) => {
+            if (err) {
+                console.error(new Error("ERROR deleting session key"));
+                response.json({status: "ERROR"});
+            } else {
+        		console.log("USER",request.cookies.key, "logged out");
+                response.clearCookie("key");
+                response.json({status: "OK"});
+            }
 		});
-        //response.redirect('/login');
-
 });
 
 //front end
