@@ -560,57 +560,61 @@ app.get("/follow", function (request, response) {
 
 //grading
 app.post("/follow", function (request, response) {
-    
+    console.log("IN FOLLOW POST");
+
     var followbool = request.body.followbool;
     
-	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-		//if (doc) { 
-        if (request.cookies.key != null) {
+	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1}, (error, doc) => {
+		if (doc) { 
             var currentUser = request.cookies.key;
             var otherUser = request.body.username; //other user to folllow or unfollow
-            //follow
+
             if (followbool == "true") {
-
-                db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
-
+                db.collection("users").findOne({"username": otherUser}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
-                    }
-                    else if (document == null) {
-                        response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
+                    } else if (document == null) {
+                        response.json({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
                     } else {
-                        db.collection("users").update(
-                            {"username": otherUser},
-                            { $addToSet: { "followers": currentUser}}
-                        );
-
-                        db.collection("users").update(
-                            {"username": currentUser}, 
-                            { $addToSet: { "following":otherUser}}
-
-                        );
-                        response.json({status: "OK"});   
+                        db.collection("users").update({"username": otherUser},{ $addToSet: {"followers": currentUser}},
+                            (err, result) => {
+                                if (err) {
+                                    response.json({status: "error", error: err});
+                                } else {
+                                    db.collection("users").update({"username": currentUser},{$addToSet: {"following":otherUser}},
+                                    (err, result) => {
+                                        if (err) {
+                                            response.json({status: "error", error: err});
+                                        } else {
+                                            response.json({status: "OK"});  
+                                        }
+                                    }); 
+                                }
+                        });
                     }
                 });
-            //unfollow
             } else if (followbool == "false"){
-                db.collection("users").findOne( {"username": otherUser}, function (error, document) {  
+                db.collection("users").findOne( {"username": otherUser}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
-                    }
-                    else if (document == null) {
+                    } else if (document == null) {
                         response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
                     } else {
-                        db.collection("users").update(
-                            {"username": otherUser},
-                            { $pull: { "followers": currentUser} } 
-                        );
-
-                        db.collection("users").update(
-                            {"username": currentUser}, 
-                            { $pull: { "following": otherUser} } 
-                        );
-                        response.json({status: "OK"});   
+                        db.collection("users").update({"username": otherUser},{ $pull: {"followers": currentUser}},
+                        (err, result) => {
+                            if (err) {
+                                response.json({status: "error", error: err});
+                            } else {
+                                db.collection("users").update({"username": currentUser},{ $pull: {"following": otherUser}},
+                                (err,result) => {
+                                    if (err) {
+                                        response.json({status: "error", error: err});
+                                    } else {
+                                        response.json({status: "OK"});  
+                                    }
+                                });
+                            }
+                        });
                     }
                 });
             } else {
@@ -619,42 +623,41 @@ app.post("/follow", function (request, response) {
         } else {
             response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-//	});
-    
+	});
 });
                     
 //grading
 app.get("/user/:username", function (request, response) {
+    console.log("IN /USER/:username GET");
     
     var username = request.params.username;
-    db.collection("users").findOne({"username": username}, function (error, document) {
-        if (document) {
-         //   db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-           //     if (doc) { 
-			if (request.cookies.key != null) {
-                    var following = document.following;
-                    var followingCount = Object.keys(following).length;
-                    
-                    var followers = document.followers;
-                    var followersCount = Object.keys(followers).length;
-                    
-                    response.json({
-                        status: "OK", 
-                        user: {
-                            email: document.email,
-                            followers: followersCount,
-                            following: followingCount
-                        }
-                    });
+
+    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+        if (doc) {
+            db.collection("users").findOne({"username": username}, (error, document) => {
+                if (document) {
+                            var following = document.following;
+                            var followingCount = Object.keys(following).length;
+                            
+                            var followers = document.followers;
+                            var followersCount = Object.keys(followers).length;
+                            
+                            response.json({
+                                status: "OK", 
+                                user: {
+                                    email: document.email,
+                                    followers: followersCount,
+                                    following: followingCount
+                                }
+                            });
                 } else {
-                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
                 }
-           // });
+            }); 
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-        else {
-            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
-        }
-    }); 
+    });
 });
 
 //front end
@@ -688,57 +691,50 @@ app.post("/user", function (request, response) {
 
 //grading
 app.get("/user/:username/followers", function (request, response) {
+    console.log("IN USER/:username/FOLLOWERS GET");
+
     var username = request.params.username;
-    db.collection("users").findOne({"username": username}, function (error, document) {
-        if (document) {
-          //  db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-            //    if (doc) { 
-				if (request.cookies.key != null) {
-                    console.log("the username is " + username);
-                    
-                    var followers = document.followers;
-                    
+
+    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+        if (doc) {
+            db.collection("users").findOne({"username": username}, (error, document) => {
+                if (document) {
                     response.json({
                         status: "OK", 
-                        users: followers
+                        users: document.followers;
                     });
                 } else {
-                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
                 }
-//            });
+            }); 
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-        else {
-            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
-        }
-    }); 
+    });
 });
 
 //grading
 app.get("/user/:username/following", function (request, response) {
+    console.log("IN USER/:username/following GET");
     
     var username = request.params.username;
-    db.collection("users").findOne({"username": username}, function (error, document) {
-        if (document) {
-      //      db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-//        ..        if (doc) { 
-		if (request.cookies.key != null) {
-                    console.log("the username is " + username);
-                    
-                    var following = document.following;
-                    
+
+    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+        if (doc) {
+            db.collection("users").findOne({"username": username}, (error, document) => {
+                if (document) {
                     response.json({
                         status: "OK", 
-                        users: following
+                        users: document.following
                     });
                 } else {
-                    response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
                 }
-//            });
+            }); 
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
         }
-        else {
-            response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
-        }
-    }); 
+    });
 });
 
 //front end to get everyone's followers list
