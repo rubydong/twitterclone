@@ -496,13 +496,10 @@ app.post("/search", function(req, res) {
 					                                        currentLimit++;
 									}
 								}
-
-								count++;
-								if (count == last || limitCounter > limit)
-									res.json({status:"OK",items:tweetsArr});
 							});
 						}
 					});
+						res.json({status:"OK",items:tweetsArr});
 						console.log("done searching");
 				} else {
 					db.collection("tweets").find(
