@@ -120,7 +120,7 @@ app.post("/login", function (request, response) {
     if (username && password) {
 		console.log("user: %s pass: %s", username, password);
         var username = request.body.username;
-        db.collection("users").findOne({ "username": username, "password": request.body.password, "verified": "yes" }, { "name": 1 }, function (error, document) {
+        db.collection("users").findOne({ "username": username, "password": request.body.password }, { "name": 1 }, function (error, document) {
             if (document) {
                 //sets the cookiea
 					db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {
