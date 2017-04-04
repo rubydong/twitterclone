@@ -268,7 +268,7 @@ app.get("/item/:id", function (request, response) {
         if (doc) {
             db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
                 if (error) {
-                    console.error(new Error("ERROR SEARCHING FOR TWEET WITH ID", id, error));
+                    console.error(new Error("ERROR SEARCHING FOR TWEET WITH ID"));
                     response.json({status: "ERROR"});
                 } else if (document) {
                     response.json(
@@ -282,7 +282,7 @@ app.get("/item/:id", function (request, response) {
                             }
                         });
                 } else {
-                    console.error(new Error("NO TWEET FOUND WITH ID", id));
+                    console.error(new Error("NO TWEET FOUND WITH ID"));
                     response.json({status: "ERROR"});
                 }
             });
@@ -296,44 +296,49 @@ app.get("/item/:id", function (request, response) {
 
 //grading
 app.delete("/item/:id", function (request, response) {
+    console.log("IN ITEM/:id DELETE");
+
     var id = request.params.id;
-	//db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-        //console.log("what is doc username " + JSON.stringify(doc));
-        //console.log("and request cookies key? " + request.cookies.key);
-		//if (doc) {
-		if (request.cookies.key != null) {
-            
-		console.log("DELETE id is ", id);
-        db.collection("users").update(
-            {"username": request.cookies.key},
-            {
-              $pull: {
-                    "tweets": { "id": parseInt(id)}
-                } 
-            },
-            function (error, result) {
-                if (error) {
-                    response.json({ "status": "ERROR" });
-                } else {
-                    db.collection("tweets").findOne( { "id": parseInt(request.params.id) },function (error, document) {
-                        
-                        console.log("this comparison.." + document.username);
-                        if (error) {
-                            console.log(error);
-                        } else if (document.username == request.cookies.key) {
-                            db.collection("tweets").remove({"id": parseInt(id)}, 1);
-                            response.json({status: "SUCCESS"});
-                        } else {
-                            response.json({status: "FAILURE"});
-                        }
-                    });
-                }
-            }
-        );
-    } else {
-        response.json({status: "FAILURE"});
-    }
-	//});
+	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1},(error, doc) => {
+        if (doc) {
+            db.collection("users").update({"username": request.cookies.key},
+                {
+                  $pull: {"tweets": { "id": parseInt(id)}} 
+                }, (error, result) => {
+                    if (error) {
+                        console.error(new Error("ERROR UPDATING TWEET"));
+                        response.json({status: "ERROR" });
+                    } else {
+                        db.collection("tweets").findOne( {"id": parseInt(request.params.id) }, (error, document) => {
+                            if (error) {
+                                console.error(new Error("ERROR FINDING TWEET WITH ID"));
+                                response.json({status: "ERROR"});
+                            } else if (document) {
+                                if (document.username == request.cookies.key) {
+                                    db.collection("tweets").remove({"id": parseInt(id)}, 1, (error, result) => {
+                                        if (error) {
+                                            console.error(new Error("ERROR REMOVING TWEET"));
+                                            response.json({status:"ERROR"});
+                                        } else {
+                                            response.json({status: "SUCCESS"});
+                                        }
+                                    });
+                                } else {
+                                    console.error(new Error("DID NOT FIND TWEET WITH ID"));
+                                    response.json({status: "ERROR"});
+                                }
+                            } else {
+                                console.error(new Error("DID NOT FIND TWEET WITH ID"));
+                                response.json({status: "ERROR"});
+                            }
+                        });
+                    }
+            });
+        } else {
+            console.error(new Error("NO SESSION FOUND"));
+            response.json({status: "ERROR"});
+        }
+	});
 });
 
 //front end
