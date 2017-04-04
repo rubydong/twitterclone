@@ -67,6 +67,8 @@ function sendEmail(email, key) {
 
 //grading
 app.post("/adduser", function (req, res) {
+    console.log("IN ADDUSER POST");
+
     var e_username = req.body.username;
     var e_password = req.body.password;
     var e_email = req.body.email;    
@@ -108,6 +110,8 @@ app.get("/login", function (request, response) {
 
 //grading
 app.post("/login", function (request, response) {
+    console.log("IN LOGIN POST");
+
     var username = request.body.username;
     var password = request.body.password;
     
@@ -167,43 +171,37 @@ app.get("/verify", function (request, response) {
 });
 
 //grading
-app.post("/verify", function (request, response) {
-    
+app.post("/verify", function (req, res) {
 	console.log("IN VERIFY POST");
-    var email = request.body.email;
-    var key = request.body.key;
-    var emailkey = "";
-    if (email && key) {
-        
-        
-        db.collection("users").findOne({email: email}, function (err, document) {
-            if (err){ 
-                console.log(err);
-            } else if (document) {
-                emailkey = document.verified;
-                console.log("THE KEY IS " + document.verified);
-                if ( key == emailkey || key == "abracadabra") {
-                    //console.log("IN HERE IN VERIFY");
-                    //response.json({status: "OK"});
-                    db.collection("users").update(
-                        { "email": email }, 
-                        { $set: { "verified": "yes" } });
-                    
 
-					response.json({status:"OK"});
-                }
-                else { 
-                    response.json({status: "ERROR", error: "INVALID KEY PLEASE TRY AGAIN"});
-                }
+    var e_email = req.body.email;
+    var e_key = req.body.key;
+    var e_emailkey = "";
+
+    if (e_email && e_key) {
+        db.collection("users").findOne({email: e_email}, (err, doc) => {
+            if (err){ 
+                console.error(new Error("DID NOT FIND USER:", e_email, err));
+                res.json({status: "ERROR"});
             } else {
-				console.log("DOC WAS NOT FOUND");
-				console.log("email:",email);
-				response.json({status:"ERROR", error: "INVALID"});
-			}
+                e_emailkey = doc.verified;
+                if (e_key == e_emailkey || e_key == "abracadabra") {
+                    db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
+                        {w:1}, (err,res) => {
+                            if (err) {
+                                console.error(new Error("VERIFY FAILED", err))
+                                res.json({status: "ERROR"});
+                            } else {
+                                res.json({status:"OK"});
+                            }
+                        });
+                } else { 
+                    res.json({status: "ERROR", error: "INVALID KEY PLEASE TRY AGAIN"});
+                }
+            }
         });
-        
     } else {
-        response.json({"status": "ERROR", "Error": "PLEASE FILL IN ALL FIELDS"});
+        res.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
     }
 });
 
