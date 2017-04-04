@@ -497,7 +497,7 @@ app.post("/search", function(req, res) {
 							});
 						}
 
-						}
+						});
 					});
 					/*
 					db.collection("users").find({username: req.cookies.key}).toArray(
