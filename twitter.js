@@ -460,6 +460,7 @@ app.post("/search", function(request, response) {
 						var break1 = false;
 						var break2 = false;
                         for (var i = 0; i < last; i++) {
+								console.log("last is", last);
                            db.collection("users").findOne({username:user.following[i]}, function(err, usr) {
 								console.log("here");
                                 var tweets = usr.tweets;
