@@ -87,7 +87,7 @@ app.post("/adduser", function (req, res) {
                     "followers": [],
                     "following": []
                 };
-                db.collection("users").insert(newuser,{w:1}, (err, res) => {
+                db.collection("users").insert(newuser,{w:1}, (err, user) => {
                     if (err)
                         console.error(new Error("ERROR inserting newuser", err));
                     else
