@@ -701,7 +701,7 @@ app.get("/user/:username/followers", function (request, response) {
                 if (document) {
                     response.json({
                         status: "OK", 
-                        users: document.followers;
+                        users: document.followers
                     });
                 } else {
                     response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
