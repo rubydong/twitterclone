@@ -475,7 +475,7 @@ app.post("/search", function(req, res) {
 
 			} else {
 				if (following == true) {
-					db.collections("users").find({username: req.cookies.key}).toArray(
+					db.collection("users").find({username: req.cookies.key}).toArray(
 					function (err, user) {
 						var count = 0;
 						var last = user[0].following.length;
