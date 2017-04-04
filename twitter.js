@@ -22,7 +22,7 @@ app.set("trust proxy", 1); //Trust first proxy
 
 
 
-MongoClient.connect("mongodb://130.245.168.182:27017/twitter",function(error,database) {
+MongoClient.connect("mongodb://localhost:27017/twitter",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
@@ -65,47 +65,38 @@ function sendEmail(email, key) {
 
 
 //grading
-app.post("/adduser", function (request, response) {
-    var username = request.body.username;
-    var password = request.body.password;
-    var email = request.body.email;    
-    var emailkey = (Math.random() + 1).toString(36).substring(7);
+app.post("/adduser", function (req, res) {
+    var e_username = req.body.username;
+    var e_password = req.body.password;
+    var e_email = req.body.email;    
+    var e_emailkey = (Math.random() + 1).toString(36).substring(7);
     
-    if (username && password && email) {
+    if (e_username && e_password && e_email) {
         //check if username/email has been taken already
-        db.collection("users").findOne({"username": username},{"conversations": 1 }, (err, doc) => {  
+        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]},
+                                       {conversations: 1}, (err, doc) => {
             if (doc) {
-                response.json({status: "ERROR", error: "USERNAME ALREADY EXISTS"});
+                res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
             } else {
-                //user does not exist check emails now
-                db.collection("users").findOne( {"email": email}, { "conversations": 1 }, (error, exists) => {  
-                    if (exists) {
-                        //email exists
-                        response.json({status: "ERROR", error: "EMAIL ALREADY EXISTS"});
-                    } else {
-                        //sendEmail (email, emailkey);
-                        var newuser = {
-                            "username": username,
-                            "password": password,
-                            "email": email,
-                            "verified": emailkey, 
-                            "tweets": [],
-                            "followers": [],
-                            "following": []
-                        }; 
-                        db.collection("users").insert(newuser, {w: 1}, (err,res) => {
-							if (err) {
-								console.log("ERROR inserting new user", err);
-							} else {
-								response.json({status:"OK"});
-							}
-						});
-                    }
+                var newuser = {
+                    "username": e_username,
+                    "password": e_password,
+                    "email": e_email,
+                    "verified": e_emailkey, 
+                    "tweets": [],
+                    "followers": [],
+                    "following": []
+                };
+                db.collection("users").insert(newuser,{w:1}, (err, res) => {
+                    if (err)
+                        console.error(new Error("ERROR inserting newuser", err));
+                    else
+                        res.json({status: "OK"});
                 });
             }
         });
     } else {
-        response.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
+        res.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
     }
 });
         
