@@ -451,19 +451,16 @@ app.post("/search", function(request, response) {
                 });
             } else {
                 if (following == true) {   
-                    var user = db.collection("users").find({username:request.cookies.key}).toArray();
+                    db.collection("users").findOne({username:request.cookies.key}, function(err, user) {
                     	
                         var count = 0;
-                        var last = user[0].following.length;
+                        var last = user.following.length;
                         //looking for the followings
 						var break1 = false;
 						var break2 = false;
-                        for (var i = 0; i < user[0].following.length; i++) {
-                           var usr =  db.collection("users").find({username:user[0].following[i]}).toArray();
-
-							for (var i = 0; i < usr.length; i++) {
-//                            function(err, followingUser) {
-                                var tweets = usr[i].tweets;
+                        for (var i = 0; i < last; i++) {
+                           db.collection("users").findOne({username:user.following[i]}, function(err, usr) {
+                                var tweets = usr.tweets;
                                 //looking for the tweets of each one of the followings
                                 for (var j = 0; j < tweets.length; j++) {
                                     if ( (tweets[j].content.indexOf(query) != -1) && (tweets[j].timestamp <= timestamp) && currentLimit < limit) {
@@ -482,18 +479,16 @@ app.post("/search", function(request, response) {
                                 }
                                 count++;
                                 if ((count == last) || currentLimit >= limit) {
-									
 									console.log("2 NUM:",tweetsArr.length);
                                     response.json({status: "OK", items: tweetsArr});
 									break2 = true;
-									break;
+									//break;
 								}
- ///                           });
-							}
-						if (break2 == true) break;
+							});
                         
 						}
-                   // });  
+						
+                    });  
                 } else {
 
 					var done = false;
