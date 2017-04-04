@@ -480,12 +480,15 @@ app.post("/search", function(req, res) {
 						]
 					}).limit(limit).each((err, val) => {
 						if (val) {
-							tweetsArr.push({
-								id: val.id,
-								username: val.username,
-								content: val.content,
-								timestamp: val.timestamp
-							});
+                            if (limitCounter < limit) {
+    							tweetsArr.push({
+    								id: val.id,
+    								username: val.username,
+    								content: val.content,
+    								timestamp: val.timestamp
+    							});
+                                limitCounter++;
+                            }
 						} else {
                             console.log("Number of tweets", tweetsArr.length);
 							res.json({status: "OK",items: tweetsArr});
