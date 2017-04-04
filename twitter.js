@@ -459,6 +459,8 @@ app.post("/search", function(request, response) {
                         //looking for the followings
 						var break1 = false;
 						var break2 = false;
+
+						if (last > 0) {
                         for (var i = 0; i < last; i++) {
 								console.log("last is", last);
                            db.collection("users").findOne({username:user.following[i]}, function(err, usr) {
@@ -489,6 +491,10 @@ app.post("/search", function(request, response) {
 								}
 							});
                         
+						} 
+						} else {
+							console.log("EMPTY");
+							response.json({status:"OK", items:tweetsArr});
 						}
 						
                     }); 
