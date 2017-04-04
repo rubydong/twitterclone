@@ -449,28 +449,33 @@ app.post("/search", function(req, res) {
 					}
 				});
 			} else {
-				if (following == true) {
-
+				if (following == "FORNOW") {
+                    console.log("FOLLOWING IS TRUE");
 					db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
-						var following = user.following;
-						db.collection("tweets").find({username:{$in: following}}).limit(limit).each((err,val) => {
-    						if (val) {
-    							tweetsArr.push({
-    								id: val.id,
-    								username: val.username,
-    								content: val.content,
-    								timestamp: val.timestamp
-    							});
-    						} else {
-                                console.log("Number of tweets", tweetsArr.length);
-    							res.json({status: "OK",items: tweetsArr});
-    						}
-						});
+                        if (user) {
+    						var following = user.following;
+    						db.collection("tweets").find({username:{$in: following}}).limit(limit).each((err,val) => {
+        						if (val) {
+        							tweetsArr.push({
+        								id: val.id,
+        								username: val.username,
+        								content: val.content,
+        								timestamp: val.timestamp
+        							});
+        						} else {
+                                    console.log("Number of tweets", tweetsArr.length);
+        							res.json({status: "OK",items: tweetsArr});
+        						}
+    						});
+                        } else {
+                            res.json({status: "ERROR",error: "USER IS NOT FOUND"});
+                        }
 					});
 				} else {
+                    console.log("FOLLOWING IS FALSE");
 					db.collection("tweets").find(
 					{$and: [
-						{content: {$regex: query}},
+						{content: {$regex: /.*/ }},
 						{timestamp: {$lte: timestamp}}
 						]
 					}).limit(limit).each((err, val) => {
