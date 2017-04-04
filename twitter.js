@@ -22,15 +22,15 @@ app.set("trust proxy", 1); //Trust first proxy
 
 
 
-MongoClient.connect("mongodb://localhost:27017/twitter",function(error,database) {
+MongoClient.connect("mongodb://localhost:27017/twitter", (err,db) => {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
-    if (error) {
+    if (err) {
         return console.error(new Error("Attempting to connect to db:", error));
+    } else {
+        console.log("Connected to MongoDB");
     }
-    db = database;
-    console.log("Connected to MongoDB");
 });
 
 //front end
