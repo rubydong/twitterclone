@@ -245,7 +245,7 @@ app.post("/additem", function (req, res) {
                         db.collection("tweets").insert(document, {w: 1}, (error, result) => {
     							if (error) {
     								console.error(new Error("ERROR INSERTING TWEET TO DB"));
-                                    res.json(status: "ERROR");
+                                    res.json({status: "ERROR"});
     							} else { 
     								res.json({status: "OK", id: doc.id});
     							}
