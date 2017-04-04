@@ -482,12 +482,13 @@ app.post("/search", function(req, res) {
 
                         for (var i = 0; i < val.length; i++) {
                             if (limitCounter < limit) {
-                                tweetsArr.push(
+                                tweetsArr.push({
                                     item: {
                                      id: val[i].id,
                                      username: val[i].username,
                                      content: val[i].content,
                                      timestamp: val[i].timestamp
+                                    }
                                 });
                                 limitCounter++;
                             } else {
@@ -495,6 +496,7 @@ app.post("/search", function(req, res) {
                             }
                         }
                         console.log("Number of tweets", tweetsArr.length);
+                        console.log(tweetsArr);
                         res.json({status: "OK",items: tweetsArr});
 						// if (val) {
       //                       if (limitCounter < limit) {
