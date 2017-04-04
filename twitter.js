@@ -451,18 +451,21 @@ app.post("/search", function(request, response) {
                 });
             } else {
                 if (following == true) {   
-                    db.collection("users").find({username:request.cookies.key}).toArray(
-                    function(err, user) {
+                    var user = db.collection("users").find({username:request.cookies.key}).toArray();
+                    	
                         var count = 0;
                         var last = user[0].following.length;
                         //looking for the followings
+						var break1 = false;
+						var break2 = false;
                         for (var i = 0; i < user[0].following.length; i++) {
-                            db.collection("users").find({username:user[0].following[i]}).toArray(
-                            function(err, followingUser) {
-                                var tweets = followingUser[0].tweets;
+                           var usr =  db.collection("users").find({username:user[0].following[i]}).toArray();
+
+							for (var i = 0; i < usr.length; i++) {
+//                            function(err, followingUser) {
+                                var tweets = usr[i].tweets;
                                 //looking for the tweets of each one of the followings
                                 for (var j = 0; j < tweets.length; j++) {
-									if (currentLimit >= limit) break;
                                     if ( (tweets[j].content.indexOf(query) != -1) && (tweets[j].timestamp <= timestamp) && currentLimit < limit) {
                                         tweetsArr.push({
                                             id: tweets[j].id,
@@ -472,16 +475,25 @@ app.post("/search", function(request, response) {
                                         });
                                         currentLimit++;
                                     }
+									if (currentLimit >= limit) {
+										break1 = true;
+										break;
+									}
                                 }
                                 count++;
                                 if ((count == last) || currentLimit >= limit) {
 									
 									console.log("2 NUM:",tweetsArr.length);
                                     response.json({status: "OK", items: tweetsArr});
+									break2 = true;
+									break;
 								}
-                            });
-                        }
-                    });  
+ ///                           });
+							}
+						if (break2 == true) break;
+                        
+						}
+                   // });  
                 } else {
 
 					var done = false;
