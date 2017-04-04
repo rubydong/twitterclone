@@ -27,7 +27,7 @@ MongoClient.connect("mongodb://130.245.168.182:27017/twitter",function(error,dat
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     if (error) {
-        return console.dir(error);
+        return console.error(new Error("Attempting to connect to db:", error));
     }
     db = database;
     console.log("Connected to MongoDB");
@@ -116,39 +116,29 @@ app.get("/login", function (request, response) {
 
 //grading
 app.post("/login", function (request, response) {
-    
     var username = request.body.username;
     var password = request.body.password;
     
     if (username && password) {
-		console.log("user: %s pass: %s", username, password);
-        var username = request.body.username;
-        db.collection("users").findOne({ "username": username, "password": request.body.password }, { "name": 1 }, function (error, document) {
-            if (document) {
-                //sets the cookiea
-					db.collection("sessions").insert({"sessionkey": username},{w: 1}, function(error,result) {
-						if (error) {
-							console.log(error);
-						} else {
-							response.cookie('key', username);
-							response.json({status: "OK"});
-						}
-						
-	
-					});
-			//	response.cookie('key', username);
-                //request.session.username = username;
-            //    response.json({"status": "OK"});
+		console.log("Attempt login with user: %s pass: %s", username, password);
+        db.collection("users").findOne({ "username": username, "password": password }, {"name": 1}, (error, document) => {
+            if (doc) {
+				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
+					if (err) {
+						console.log("ERROR attempting login:", err);
+					} else {
+						response.cookie('key', username);
+						response.json({status: "OK"});
+					}
+				});
             } else {
 				console.log(username, password);
                 response.json({status:"ERROR", error: "INVALID LOGIN"});
             }
         });
-       
     } else {
         response.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
     }
-    
 });
 
 //front end
