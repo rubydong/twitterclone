@@ -1,21 +1,16 @@
-var cookieSession = require("cookie-session");
 var express = require("express");
 var app = express();
 var path = require("path");
 var bodyParser = require("body-parser");
 var nodemailer = require("nodemailer");
-var cp = require("cookie-parser");
+var cookieParser = require("cookie-parser");
 var MongoClient = require("mongodb").MongoClient;
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
-app.use(cp());
+app.use(cookieParser());
 app.set("trust proxy", 1); //Trust first proxy
-app.use(cookieSession({
-    name: "session",
-    keys: [(Math.random() + 1).toString(36).substring(7)]
-}));
 
 MongoClient.connect("mongodb://130.245.168.182:27017/twitter",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
