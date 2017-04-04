@@ -187,7 +187,7 @@ app.post("/verify", function (req, res) {
                 e_emailkey = doc.verified;
                 if (e_key == e_emailkey || e_key == "abracadabra") {
                     db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
-                        {w:1}, (err,res) => {
+                        {w:1}, (err,result) => {
                             if (err) {
                                 console.error(new Error("VERIFY FAILED", err))
                                 res.json({status: "ERROR"});
