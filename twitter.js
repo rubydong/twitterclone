@@ -268,7 +268,7 @@ app.get("/item/:id", function (request, response) {
         if (error) {
             console.error(new Error("NO SESSION AVAILABLE"));
             response.json({status: "ERROR"});
-        } else {
+        } else if (doc) {
             db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
                 if (error) {
                     console.error(new Error("COULD NOT FIND TWEET WITH ID", id, error));
@@ -286,6 +286,9 @@ app.get("/item/:id", function (request, response) {
                         });
                 }
             });
+        } else {
+            console.error(new Error("COULD NOT FIND TWEET WITH ID", id));
+            response.json({status:"ERROR", error: "NO TWEET WITH ID"});
         }
     });
 });
