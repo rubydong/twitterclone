@@ -483,13 +483,12 @@ app.post("/search", function(req, res) {
                         for (var i = 0; i < val.length; i++) {
                             if (limitCounter < limit) {
                                 tweetsArr.push({
-                                    item: {
                                      id: val[i].id,
                                      username: val[i].username,
                                      content: val[i].content,
                                      timestamp: val[i].timestamp
                                     }
-                                });
+                                );
                                 limitCounter++;
                             } else {
                                 break;
