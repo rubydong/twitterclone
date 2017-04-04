@@ -451,6 +451,7 @@ app.post("/search", function(request, response) {
                 });
             } else {
                 if (following == true) {   
+					
                     db.collection("users").findOne({username:request.cookies.key}, function(err, user) {
                     	
                         var count = 0;
@@ -460,6 +461,7 @@ app.post("/search", function(request, response) {
 						var break2 = false;
                         for (var i = 0; i < last; i++) {
                            db.collection("users").findOne({username:user.following[i]}, function(err, usr) {
+								console.log("here");
                                 var tweets = usr.tweets;
                                 //looking for the tweets of each one of the followings
                                 for (var j = 0; j < tweets.length; j++) {
@@ -488,7 +490,8 @@ app.post("/search", function(request, response) {
                         
 						}
 						
-                    });  
+                    }); 
+					console.log("exit 2"); 
                 } else {
 
 					var done = false;
