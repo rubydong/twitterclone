@@ -137,6 +137,7 @@ app.post("/login", function (request, response) {
                 //request.session.username = username;
             //    response.json({"status": "OK"});
             } else {
+				console.log(username, password);
                 response.json({status:"ERROR", error: "INVALID LOGIN"});
             }
         });
