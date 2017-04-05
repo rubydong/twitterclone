@@ -452,8 +452,9 @@ app.post("/search", function(req, res) {
                     console.log("FOLLOWING IS TRUE");
 					db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
                         if (user) {
-    						var following = user.following;
-    						db.collection("tweets").find({username:{$in: following}}).limit(limit).toArray((err,val) => {
+    						var follow = user.following;
+                            console.log("FOLLOWING", follow);
+    						db.collection("tweets").find({username:{$in: follow}}).limit(limit).toArray((err,val) => {
                                 console.log("Number returned from toArray", val.length);
 
                                 for (var i = 0; i < val.length; i++) {
