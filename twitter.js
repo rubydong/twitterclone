@@ -275,10 +275,10 @@ app.get("/item/:id", function (request, response) {
                         {
                             status: "OK",
                             item: {
-                                id: document.id,
-                                username: document.username,
-                                content: document.content,
-                                timestamp: document.timestamp
+                                id: documentA.id,
+                                username: documentA.username,
+                                content: documentA.content,
+                                timestamp: documentA.timestamp
                             }
                         });
                 } else {
