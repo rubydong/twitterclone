@@ -37,7 +37,7 @@
 
             <div id="tweetsInfo">
 
-                <div class="tweet" ng-repeat = "tweet in newsfeed.items">
+                <div class="tweet" ng-repeat = "tweet in newsfeed.items |orderBy:'-'">
                     Id #{{tweet.id}} @{{tweet.username}}
                     Timestamp: {{tweet.timestamp}}
                     <br>
