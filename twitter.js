@@ -503,26 +503,53 @@ app.post("/search", function(req, res) {
                 }
             } else {
                 console.log("FOLLOWING IS FALSE");
-                 db.collection("tweets").find(
-                 {$and: [
-                     {content: {$regex: query }},
-                     {timestamp: {$lte: timestamp}}
-                     ]
-                 }).limit(limit).toArray((err, val) => {
-                        console.log("Number returned from toArray", val.length);
 
-                        for (var i = 0; i < val.length; i++) {
-                            if (limitCounter < limit) {
-                                tweetsArr.push(val[i]);
-                                limitCounter++;
-                            } else {
-                                break;
+                if (username) {
+                    db.collection("users").find({"username": username}, (err, user) => {
+                        if (user) {
+                            var tweets = user.tweets;
+
+                            for (var i = 0; i < tweets.length && limitCounter < limit; i++) {
+                                if ( (tweets[j].content.indexOf(query) != -1) && 
+                                     (tweets[j].timestamp <= timestamp)) {
+                                    tweetsArr.push({
+                                        id: tweets[j].id,
+                                        username: tweets[j].username,
+                                        content: tweets[j].content,
+                                        timestamp: tweets[j].timestamp
+                                    });
+                                    limitCounter++;
+                                }
                             }
+
+                            res.json({status: "OK", items: tweetsArr});
+                        } else {   
+                            res.json({status: "OK", items: []});
                         }
-                        console.log("Number of tweets", tweetsArr.length);
-                        // console.log(tweetsArr);
-                        res.json({status: "OK",items: tweetsArr});
-                 });
+                    });
+
+                } else {
+                     db.collection("tweets").find(
+                     {$and: [
+                         {content: {$regex: query }},
+                         {timestamp: {$lte: timestamp}}
+                         ]
+                     }).limit(limit).toArray((err, val) => {
+                            console.log("Number returned from toArray", val.length);
+
+                            for (var i = 0; i < val.length; i++) {
+                                if (limitCounter < limit) {
+                                    tweetsArr.push(val[i]);
+                                    limitCounter++;
+                                } else {
+                                    break;
+                                }
+                            }
+                            console.log("Number of tweets", tweetsArr.length);
+                            // console.log(tweetsArr);
+                            res.json({status: "OK",items: tweetsArr});
+                     });
+                }
             }
 
 
