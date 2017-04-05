@@ -477,13 +477,13 @@ app.post("/search", function(req, res) {
                                         var tweets = val[i].tweets;
 
                                         for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
-                                            if ( (tweets[i].content.indexOf(query) != -1) && 
-                                                 (tweets[i].timestamp <= timestamp)) {
+                                            if ( (tweets[j].content.indexOf(query) != -1) && 
+                                                 (tweets[j].timestamp <= timestamp)) {
                                                 tweetsArr.push({
-                                                    id: tweets[i].id,
-                                                    username: tweets[i].username,
-                                                    content: tweets[i].content,
-                                                    timestamp: tweets[i].timestamp
+                                                    id: tweets[j].id,
+                                                    username: tweets[j].username,
+                                                    content: tweets[j].content,
+                                                    timestamp: tweets[j].timestamp
                                                 });
                                                 limitCounter++;
                                             }
