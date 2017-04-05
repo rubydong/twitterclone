@@ -465,6 +465,7 @@ app.post("/search", function(req, res) {
                         }
                     });
                 } else {
+                    console.log("MY USERNAME IS", req.cookies.key);
                     db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
                         if (user) {
                             var follow = user.following;
