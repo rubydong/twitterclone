@@ -470,11 +470,11 @@ app.post("/search", function(req, res) {
                             var follow = user.following;
                             console.log("FOLLOWING", follow);
                             db.collection("users").find({username:{$in: follow}}).limit(limit).toArray((err,val) => {
-                                if (val) {
                                     console.log("Number returned from toArray", val.length);
-                                    var tweets = val.tweets;
+                                    // var tweets = val.tweets;
 
                                     for (var i = 0; i < val.length && limitCounter < limit; i++) {
+                                        var tweets = val[i].tweets;
                                         if ( (tweets[i].content.indexOf(query) != -1) && 
                                              (tweets[i].timestamp <= timestamp)) {
                                             tweetsArr.push({
@@ -486,10 +486,6 @@ app.post("/search", function(req, res) {
                                             limitCounter++;
                                         }
                                     }
-                                } else {
-                                    console.log("Number of tweets", tweetsArr.length);
-                                    res.json({status: "OK",items: tweetsArr});
-                                }
                             });
                         } else {
                             res.json({status: "ERROR",error: "USER IS NOT FOUND"});
