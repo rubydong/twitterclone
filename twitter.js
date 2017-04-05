@@ -486,6 +486,8 @@ app.post("/search", function(req, res) {
                                             limitCounter++;
                                         }
                                     }
+
+                                    res.json({status: "OK", items: tweetsArr});
                             });
                         } else {
                             res.json({status: "ERROR",error: "USER IS NOT FOUND"});
