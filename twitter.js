@@ -511,7 +511,7 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var tweets = user.tweets;
 
-                            for (var i = 0; i < tweets.length && limitCounter < limit; i++) {
+                            for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
                                 if ( (tweets[j].content.indexOf(query) != -1) && 
                                      (tweets[j].timestamp <= timestamp)) {
                                     tweetsArr.push({
