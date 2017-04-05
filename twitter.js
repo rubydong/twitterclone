@@ -469,7 +469,7 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var follow = user.following;
                             console.log("FOLLOWING", follow);
-                            db.collection("tweets").find({username:{$in: follow}}).limit(limit).toArray((err,val) => {
+                            db.collection("users").find({username:{$in: follow}}).limit(limit).toArray((err,val) => {
                                 console.log("Number returned from toArray", val.length);
                                 var tweets = val.tweets;
 
