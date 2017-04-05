@@ -419,7 +419,7 @@ app.post("/search", function(req, res) {
 		timestamp = parseInt(req.body.timestamp) * 1000;
 	if (req.body.q)
 		query = req.body.q;
-	if (req.body.following)
+	if (!req.body.following)
 		following = req.body.following;
 
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
