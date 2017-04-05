@@ -263,7 +263,7 @@ app.get("/item/:id", function (request, response) {
     console.log("IN ITEM/:id GET");
 
     var id = request.params.id;
-    //console.log("param id is.." + id);
+    console.log("param id is.." + id, typeof(id));
 	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
             db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
