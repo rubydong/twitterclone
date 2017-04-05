@@ -469,21 +469,24 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var follow = user.following;
                             console.log("FOLLOWING", follow);
-                            db.collection("users").find({username:{$in: follow}}).limit(limit).toArray((err,val) => {
+                            db.collection("users").find({username:{$in: follow}}).toArray((err,val) => {
                                     console.log("Number returned from toArray", val.length);
                                     // var tweets = val.tweets;
 
                                     for (var i = 0; i < val.length && limitCounter < limit; i++) {
                                         var tweets = val[i].tweets;
-                                        if ( (tweets[i].content.indexOf(query) != -1) && 
-                                             (tweets[i].timestamp <= timestamp)) {
-                                            tweetsArr.push({
-                                                id: tweets[i].id,
-                                                username: tweets[i].username,
-                                                content: tweets[i].content,
-                                                timestamp: tweets[i].timestamp
-                                            });
-                                            limitCounter++;
+
+                                        for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
+                                            if ( (tweets[i].content.indexOf(query) != -1) && 
+                                                 (tweets[i].timestamp <= timestamp)) {
+                                                tweetsArr.push({
+                                                    id: tweets[i].id,
+                                                    username: tweets[i].username,
+                                                    content: tweets[i].content,
+                                                    timestamp: tweets[i].timestamp
+                                                });
+                                                limitCounter++;
+                                            }
                                         }
                                     }
 
