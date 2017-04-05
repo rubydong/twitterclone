@@ -320,7 +320,7 @@ app.delete("/item/:id", function (request, response) {
                                             console.error(new Error("ERROR REMOVING TWEET"));
                                             response.json({status:"ERROR"});
                                         } else {
-                                            response.json({status: "SUCCESS"});
+                                            response.json({status: "OK"});
                                         }
                                     });
                                 } else {
