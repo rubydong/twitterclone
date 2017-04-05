@@ -423,6 +423,12 @@ app.post("/search", function(req, res) {
 
     console.log("WHAT IS USERNAME", username, req.body.username);
 
+    if (username) {
+        console.log("username is inputted");
+    } else {
+        console.log("not inputted");
+    }
+
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
