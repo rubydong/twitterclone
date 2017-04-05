@@ -266,7 +266,7 @@ app.get("/item/:id", function (request, response) {
     // console.log("param id is.." + id, typeof(id));
 	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
-            db.collection("tweets").findOne({id: parseInt(id)}, (error, documentA) => {
+            db.collection("tweets").findOne({"id": parseInt(id)}, (error, documentA) => {
                 if (error) {
                     console.error(new Error("ERROR SEARCHING FOR TWEET WITH ID"));
                     response.json({status: "ERROR"});
@@ -282,7 +282,7 @@ app.get("/item/:id", function (request, response) {
                             }
                         });
                 } else {
-                    console.error(new Error("NO TWEET FOUND WITH ID"));
+                    console.log("NO TWEET FOUND WITH ID", id);
                     response.json({status: "ERROR"});
                 }
             });
