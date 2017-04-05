@@ -421,14 +421,6 @@ app.post("/search", function(req, res) {
 	if (req.body.following)
 		following = req.body.following;
 
-    console.log("WHAT IS USERNAME", username, req.body.username);
-
-    if (username) {
-        console.log("username is inputted");
-    } else {
-        console.log("not inputted");
-    }
-
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
@@ -436,7 +428,7 @@ app.post("/search", function(req, res) {
             if (following == true) {
                 console.log("FOLLOWING IS TRUE");
 
-                if (username != null) {
+                if (username) {
                     console.log("USERNAME IS INPUTTED")
                     db.collection("users").findOne({"username": req.cookies.key, "following": { $in: [username] }}, (error, loggeduser) => {
                         if (loggeduser) {
