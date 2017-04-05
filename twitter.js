@@ -424,7 +424,7 @@ app.post("/search", function(req, res) {
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
-
+            console.log("WHAT IS FOLLOWING", typeof(req.body.following));
             if (following == true) {
                 console.log("FOLLOWING IS TRUE");
 
