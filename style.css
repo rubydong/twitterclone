@@ -167,3 +167,10 @@ textarea:focus {outline:0;}
     border: 1px solid #9E9E9E;
     float: left;
 }
+
+
+@media only screen and (max-width: 1200px) {
+    #tweetsInfo {
+        width: 50%;
+    }
+}
