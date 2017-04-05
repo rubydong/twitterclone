@@ -271,7 +271,7 @@ app.get("/item/:id", function (request, response) {
             console.log("PREPARING TO SEARCH FOR", x);
             db.collection("tweets").findOne({"id": x}, (error, documentA) => {
                 if (error) {
-                    console.error(new Error("ERROR SEARCHING FOR TWEET WITH ID"));
+                    console.log("ERROR SEARCHING FOR TWEET WITH ID");
                     response.json({status: "ERROR"});
                 } else if (documentA) {
                     response.json(
