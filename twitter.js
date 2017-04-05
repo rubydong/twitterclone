@@ -507,7 +507,7 @@ app.post("/search", function(req, res) {
                 console.log("FOLLOWING IS FALSE");
 
                 if (username) {
-                    db.collection("users").find({"username": username}, (err, user) => {
+                    db.collection("users").findOne({"username": username}, (err, user) => {
                         if (user) {
                             var tweets = user.tweets;
 
