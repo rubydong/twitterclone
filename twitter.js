@@ -263,7 +263,7 @@ app.get("/item/:id", function (request, response) {
     console.log("IN ITEM/:id GET");
 
     var id = request.params.id;
-    console.log("param id is.." + id, typeof(id));
+    // console.log("param id is.." + id, typeof(id));
 	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
             db.collection("tweets").findOne({id: parseInt(id)}, (error, document) => {
@@ -372,9 +372,9 @@ app.post("/item", function (request, response) {
 });
 
 //front end
-app.get("/search", function(request, response) {   
-   response.sendFile(path.join(__dirname + "/search.html")); 
-});
+// app.get("/search", function(request, response) {   
+//    response.sendFile(path.join(__dirname + "/search.html")); 
+// });
 
 //front end to get everyone's profile
 app.get("/profile/:username", function (request, response) {
@@ -402,7 +402,8 @@ function checkConditions(tweets, query, timestamp) {
 
 app.post("/search", function(req, res) {
 	console.log("IN SEARCH POST");
-    console.log(req.body.limit);
+    // console.log(req.body.limit);
+    console.log(req.body);
 
 	var timestamp = new Date().getTime();
 	var limit = 25;
@@ -604,6 +605,7 @@ app.post("/search", function(req, res) {
 
 //front end
 app.get("/follow", function (request, response) {
+    console.log("IN GET FOLLOW SHOULD NOT HAPPEN")
     response.sendFile(path.join(__dirname + "/follow.html")); 
 });
 
