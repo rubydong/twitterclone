@@ -416,10 +416,12 @@ app.post("/search", function(req, res) {
 	}
 	if (req.body.timestamp)
 		timestamp = parseInt(req.body.timestamp) * 1000;
-	if (req.body.query)
-		query = req.body.query;
+	if (req.body.q)
+		query = req.body.q;
 	if (req.body.following)
 		following = req.body.following;
+
+    console.log("WHAT IS USERNAME", username, req.body.username);
 
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
