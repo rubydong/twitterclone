@@ -235,18 +235,19 @@ app.post("/additem", function (req, res) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         res.json({status: "ERROR" });
                     } else {
-                        var document = {
+                        var documentA = {
                             "id": id,   
                             "username": req.cookies.key,
                             "content": content,
                             "timestamp": timestamp
                         };
                         
-                        db.collection("tweets").insert(document, {w: 1}, (error, result) => {
+                        db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
     							if (error) {
     								console.error(new Error("ERROR INSERTING TWEET TO DB"));
                                     res.json({status: "ERROR"});
     							} else { 
+                                    console.log("SUCCESS INSERTING", id);
     								res.json({status: "OK", id: id});
     							}
     					});
@@ -287,7 +288,7 @@ app.get("/item/:id", function (request, response) {
                 }
             });
         } else {
-            console.error(new Error("NO SESSION AVAILABLE"));
+            console.log("NO SESSION AVAILABLE");
             response.json({status: "ERROR"});
         }
     });
@@ -299,6 +300,7 @@ app.delete("/item/:id", function (request, response) {
     console.log("IN ITEM/:id DELETE");
 
     var id = request.params.id;
+    console.log("DELETING", id);
 	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1},(error, doc) => {
         if (doc) {
             db.collection("users").update({"username": request.cookies.key},
@@ -335,7 +337,7 @@ app.delete("/item/:id", function (request, response) {
                     }
             });
         } else {
-            console.error(new Error("NO SESSION FOUND"));
+            console.error("NO SESSION FOUND");
             response.json({status: "ERROR"});
         }
 	});
