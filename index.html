@@ -95,8 +95,21 @@
                     }).done(function(data){
                         if (data.status == "OK") {
                             $("#content").val("");
-                        
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp: " + data.item.timestamp + "<br>" +  data.item.content + "</div>");
+                            //alert(data.id);
+                            $.ajax({
+                                "url": "/item",
+                                "type": "POST",
+                                "data": JSON.stringify({
+                                    itemId: data.id
+                                }), 
+                                "dataType": "json", 
+                                "contentType": "application/json; charset=utf-8"
+                            }).done(function(d) {
+                                if (d.status == "OK") {
+                                    //alert("now the info is " + JSON.stringify(d.item));
+                                    $("#newsfeed").prepend("<div class='tweet'> Id #" + d.item.id + " @" + d.item.username + " Timestamp: " + d.item.timestamp + "<br>" +  d.item.content + "</div>");
+                                }
+                            });                         
                         }
                         else {
                             $("#newsfeed").prepend("<p> <center>" + data.error);
