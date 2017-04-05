@@ -402,7 +402,7 @@ function checkConditions(tweets, query, timestamp) {
 
 app.post("/search", function(req, res) {
 	console.log("IN SEARCH POST");
-    console.log(req.limit);
+    console.log(req.body.limit);
 
 	var timestamp = new Date().getTime();
 	var limit = 25;
