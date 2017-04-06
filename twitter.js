@@ -563,7 +563,7 @@ app.post("/search", function(req, res) {
                             }
 
                             console.log("FINISHED USERNAME IS", username);
-                            console.log(send3);
+                            // console.log(send3);
                             res.json({status: "OK", items: send3});
                         } else {   
                             console.log("FINISHED USERNAME WAS NOT FOUND AT", username);
@@ -592,8 +592,8 @@ app.post("/search", function(req, res) {
                                 
                             }
                             console.log("Number of tweets", send4.length);
-                            if (req.body.query != null)
-                                console.log(send4);
+                            // if (req.body.query != null)
+                            //     console.log(send4);
                             res.json({status: "OK",items: send4});
                      });
                 }
