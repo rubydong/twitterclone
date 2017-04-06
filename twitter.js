@@ -533,6 +533,7 @@ app.post("/search", function(req, res) {
                     });
 
                 } else {
+                    console.log("QUERY IS", query);
                      db.collection("tweets").find(
                      {$and: [
                          {content: {$regex: query }},
@@ -550,7 +551,7 @@ app.post("/search", function(req, res) {
                                 }
                             }
                             console.log("Number of tweets", tweetsArr.length);
-                            // console.log(tweetsArr);
+                            console.log(tweetsArr);
                             res.json({status: "OK",items: tweetsArr});
                      });
                 }
