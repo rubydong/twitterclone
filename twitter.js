@@ -97,36 +97,6 @@ app.post("/adduser", function (req, res) {
                                             following: []}}, {upsert:true}, (err,doc) => {
                                 res.json({status:"OK"});
                             });
-        // db.collection("users").findOne({username: e_username}, (err, doc) => {
-        //     if (doc) {
-        //         console.log("FOUND USER", e_username);
-        //         res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
-        //     } else {
-        //         db.collection("users").findOne({email: e_email}, (err, doc) => {
-        //             if (doc) {
-        //                 console.log("FOUND USER", e_username);
-        //                 res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
-        //             } else {
-        //                 var newuser = {
-        //                     "username": e_username,
-        //                     "password": e_password,
-        //                     "email": e_email,
-        //                     "verified": e_emailkey, 
-        //                     "tweets": [],
-        //                     "followers": [],
-        //                     "following": []
-        //                 };
-        //                 db.collection("users").insert(newuser,{w:1}, (err, user) => {
-        //                     if (err)
-        //                         console.error(new Error("ERROR inserting newuser", err));
-        //                     else
-        //                         res.json({status: "OK"});
-        //                 });
-        //             }
-        //         })
-        //     }
-
-        // });
     } else {
         res.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
     }
@@ -172,7 +142,8 @@ app.get("/logout", function(request, response) {
     console.log("IN LOGOUT GET");
     request.session = null;
 	console.log(request.cookies.key);
-		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
+    var sessionkey = request.cookies.key;
+		db.collection("sessions").remove({"sessionkey": sessionkey},1);
 		response.clearCookie("key");
 		console.log(request.cookies.key);
     response.redirect('/login');
@@ -182,7 +153,9 @@ app.get("/logout", function(request, response) {
 app.post("/logout", function (request, response) {
         console.log("IN LOGOUT POST");
 
-		db.collection("sessions").remove({"sessionkey": request.cookies.key},1, (err) => {
+        var sessionkey = request.cookies.key;
+
+		db.collection("sessions").remove({"sessionkey": sessionkey}, {w:1}, (err) => {
             if (err) {
                 console.error(new Error("ERROR deleting session key"));
                 response.json({status: "ERROR"});
@@ -213,8 +186,8 @@ app.post("/verify", function (req, res) {
                 console.error(new Error("DID NOT FIND USER:", e_email, err));
                 res.json({status: "ERROR"});
             } else if (doc) {
-                e_emailkey = doc.verified;
-                if (e_key == e_emailkey || e_key == "abracadabra") {
+                var new_emailkey = doc.verified;
+                if (e_key == new_emailkey || e_key == "abracadabra") {
                     db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
                         {w:1}, (err,result) => {
                             if (err) {
@@ -242,31 +215,32 @@ app.post("/additem", function (req, res) {
 
     var content = req.body.content;
     var timestamp = new Date().getTime();
+    var sessionkey = request.cookies.key;
 
-	db.collection("sessions").findOne({sessionkey: req.cookies.key},{sessionkey: 1}, (error, doc) => {
+	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
             var id = Math.round(Math.random()*99999+1)*
                      Math.round(Math.random()*99999+1)+
                     Math.round(Math.random()*99999+1);
 
-            db.collection("users").update({username: req.cookies.key},
+            db.collection("users").update({username: sessionkey},
                 {
                   $push: {
                         "tweets": {
                               "id": id,   
-                              "username": req.cookies.key,
+                              "username": sessionkey,
                               "content": content,
                               "timestamp": timestamp
                         }
                     } 
-                }, (error, result) => {
+                }, {w:1}, (error, result) => {
                     if (error) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         res.json({status: "ERROR" });
                     } else {
                         var documentA = {
                             "id": id,   
-                            "username": req.cookies.key,
+                            "username": sessionkey,
                             "content": content,
                             "timestamp": timestamp
                         };
@@ -293,9 +267,10 @@ app.get("/item/:id", function (request, response) {
     console.log("IN ITEM/:id GET");
 
     var id = request.params.id;
+    var sessionkey = request.cookies.key;
     console.log("GETTING", id);
     // console.log("param id is.." + id, typeof(id));
-	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
+	db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
             var x = parseInt(id);
             // console.log("PREPARING TO SEARCH FOR", x);
@@ -332,24 +307,26 @@ app.delete("/item/:id", function (request, response) {
     console.log("IN ITEM/:id DELETE");
 
     var id = request.params.id;
+    var sessionkey = request.cookies.key;
     console.log("DELETING", id);
-	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1},(error, doc) => {
+	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1},(error, doc) => {
         if (doc) {
-            db.collection("users").update({"username": request.cookies.key, "verified": "yes"},
+            db.collection("users").update({"username": sessionkey, "verified": "yes"},
                 {
                   $pull: {"tweets": { "id": parseInt(id)}} 
-                }, (error, result) => {
+                }, {w:1}, (error, result) => {
                     if (error) {
                         console.error(new Error("ERROR UPDATING TWEET"));
                         response.json({status: "ERROR" });
                     } else {
+
                         db.collection("tweets").findOne( {"id": parseInt(id) }, (error, document) => {
                             if (error) {
                                 console.error(new Error("ERROR FINDING TWEET WITH ID"));
                                 response.json({status: "ERROR"});
                             } else if (document) {
-                                if (document.username == request.cookies.key) {
-                                    db.collection("tweets").remove({"id": parseInt(id)}, 1, (error, result) => {
+                                if (document.username == sessionkey) {
+                                    db.collection("tweets").remove({"id": parseInt(id)}, {w:1}, (error, result) => {
                                         if (error) {
                                             console.error(new Error("ERROR REMOVING TWEET"));
                                             response.json({status:"ERROR"});
@@ -366,6 +343,7 @@ app.delete("/item/:id", function (request, response) {
                                 response.json({status: "ERROR"});
                             }
                         });
+
                     }
             });
         } else {
@@ -443,6 +421,7 @@ app.post("/search", function(req, res) {
 	var limit = 25;
 	var query = '';
 	var username = req.body.username;
+    var sessionkey = request.cookies.key;
 	var following = true;
 	var limitCounter = 0;
 
@@ -462,7 +441,7 @@ app.post("/search", function(req, res) {
     query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
     console.log("USERNAME IS", username);
 
-	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
+	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
             console.log("WHAT IS FOLLOWING", typeof(req.body.following));
@@ -471,7 +450,7 @@ app.post("/search", function(req, res) {
 
                 if (username) {
                     console.log("USERNAME IS INPUTTED")
-                    db.collection("users").findOne({"username": req.cookies.key, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
+                    db.collection("users").findOne({"username": sessionkey, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
                         if (loggeduser) {
                             console.log(req.cookies.key, "IS FOLLOWING", username);
 
@@ -482,7 +461,9 @@ app.post("/search", function(req, res) {
 
                                     var send1 = new Array();
 
-                                    for (var i = 0; i < tweets.length && limitCounter < limit; i++) {
+                                    var count1 = 0;
+
+                                    for (var i = 0; i < tweets.length && count1 < limit; i++) {
                                         if ( (tweets[i].content.match(query) != null) && 
                                              (tweets[i].timestamp <= timestamp)) {
                                             send1.push({
@@ -491,7 +472,7 @@ app.post("/search", function(req, res) {
                                                 content: tweets[i].content,
                                                 timestamp: tweets[i].timestamp
                                             });
-                                            limitCounter++;
+                                            count1++;
                                         }
                                     }
                                     console.log("RETURNING", send1.length, "TWEETS");
@@ -517,10 +498,11 @@ app.post("/search", function(req, res) {
                                     console.log("Number returned from toArray", val.length);
                                     // var tweets = val.tweets;
                                     var send2 = new Array();
-                                    for (var i = 0; i < val.length && limitCounter < limit; i++) {
+                                    var count2 = 0;
+                                    for (var i = 0; i < val.length && count2 < limit; i++) {
                                         var tweets = val[i].tweets;
 
-                                        for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
+                                        for (var j = 0; j < tweets.length && count2 < limit; j++) {
                                             if ( (tweets[j].content.match(query) != null) && 
                                                  (tweets[j].timestamp <= timestamp)) {
                                                 send2.push({
@@ -529,7 +511,7 @@ app.post("/search", function(req, res) {
                                                     content: tweets[j].content,
                                                     timestamp: tweets[j].timestamp
                                                 });
-                                                limitCounter++;
+                                                count2++;
                                             }
                                         }
                                     }
@@ -549,7 +531,8 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var tweets = user.tweets;
                             var send3 = new Array();
-                            for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
+                            var count3 = 0;
+                            for (var j = 0; j < tweets.length && count3 < limit; j++) {
                                 if ( (tweets[j].content.match(query) != null) && 
                                      (tweets[j].timestamp <= timestamp)) {
                                     send3.push({
@@ -558,7 +541,7 @@ app.post("/search", function(req, res) {
                                         content: tweets[j].content,
                                         timestamp: tweets[j].timestamp
                                     });
-                                    limitCounter++;
+                                    count3++;
                                 }
                             }
 
@@ -581,14 +564,15 @@ app.post("/search", function(req, res) {
                      }).limit(limit).toArray((err, val) => {
                             console.log("Number returned from toArray", val.length);
                             var send4 = new Array();
-                            for (var i = 0; i < val.length && limitCounter < limit; i++) {
+                            var count4 = 0;
+                            for (var i = 0; i < val.length && count4 < limit; i++) {
                                     send4.push({
                                         id: val[i].id,
                                         username: val[i].username,
                                         content: val[i].content,
                                         timestamp: val[i].timestamp
                                     });
-                                    limitCounter++;
+                                    count4++;
                                 
                             }
                             console.log("Number of tweets", send4.length);
