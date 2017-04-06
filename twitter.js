@@ -219,9 +219,7 @@ app.post("/additem", function (req, res) {
 
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
-            var id = Math.round(Math.random()*99999+1)*
-                     Math.round(Math.random()*99999+1)+
-                    Math.round(Math.random()*99999+1);
+            var id = (Math.random() + 1).toString(36).substring(15);
 
             db.collection("users").update({username: sessionkey},
                 {
