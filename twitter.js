@@ -236,6 +236,7 @@ app.post("/additem", function (req, res) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         res.json({status: "ERROR" });
                     } else {
+                        console.log(result);
                         var documentA = {
                             "id": result.id,   
                             "username": sessionkey,
