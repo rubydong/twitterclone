@@ -221,7 +221,7 @@ app.post("/additem", function (req, res) {
 		if (doc) {
             var id = (Math.random() + 1).toString(36).substring(15);
 
-            db.collection("users").update({username: sessionkey, verified: "yes"},
+            db.collection("users").findAndModify({username: sessionkey, verified: "yes"},
                 {
                   $push: {
                         "tweets": {
@@ -231,14 +231,14 @@ app.post("/additem", function (req, res) {
                               "timestamp": timestamp
                         }
                     } 
-                }, {w:1}, (error, result) => {
+                }, {new: true}, {w:1}, (error, result) => {
                     if (error) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         res.json({status: "ERROR" });
                     } else {
                         console.log(result);
                         var documentA = {
-                            "id": result.id,   
+                            "id": result.tweets[result.tweets.length].id,   
                             "username": sessionkey,
                             "content": content,
                             "timestamp": timestamp
