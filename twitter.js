@@ -221,7 +221,7 @@ app.post("/additem", function (req, res) {
 		if (doc) {
             var id = (Math.random() + 1).toString(36).substring(15);
 
-            db.collection("users").update({username: sessionkey},
+            db.collection("users").update({username: sessionkey, verified: "yes"},
                 {
                   $push: {
                         "tweets": {
@@ -237,7 +237,7 @@ app.post("/additem", function (req, res) {
                         res.json({status: "ERROR" });
                     } else {
                         var documentA = {
-                            "id": id,   
+                            "id": result.id,   
                             "username": sessionkey,
                             "content": content,
                             "timestamp": timestamp
