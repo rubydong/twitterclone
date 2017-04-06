@@ -577,12 +577,12 @@ app.post("/search", function(req, res) {
                             console.log("Number returned from toArray", val.length);
 
                             for (var i = 0; i < val.length && limitCounter < limit; i++) {
-                                    tweetsArr.push(
+                                    tweetsArr.push({
                                         id: val[i].id,
                                         username: val[i].username,
                                         content: val[i].content,
                                         timestamp: val[i].timestamp
-                                    );
+                                    });
                                     limitCounter++;
                                 
                             }
