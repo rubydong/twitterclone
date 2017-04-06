@@ -146,7 +146,7 @@ app.post("/login", function (request, response) {
     
     if (username && password) {
 		console.log("Attempt login with user: %s pass: %s", username, password);
-        db.collection("users").findOne({"username": username,"password": password}, {"name": 1}, (error, doc) => {
+        db.collection("users").findOne({"username": username,"password": password, verified: "yes"}, {"name": 1}, (error, doc) => {
             if (doc) {
 				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
 					if (err) {
@@ -471,12 +471,12 @@ app.post("/search", function(req, res) {
 
                 if (username) {
                     console.log("USERNAME IS INPUTTED")
-                    db.collection("users").findOne({"username": req.cookies.key, "following": { $in: [username] }}, (error, loggeduser) => {
+                    db.collection("users").findOne({"username": req.cookies.key, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
                         if (loggeduser) {
                             console.log(req.cookies.key, "IS FOLLOWING", username);
 
 
-                            db.collection("users").findOne({"username": username}, (error, followinguser) => {
+                            db.collection("users").findOne({"username": username, verified: "yes"}, (error, followinguser) => {
                                 if (followinguser) {
                                     var tweets = followinguser.tweets;
 
@@ -507,11 +507,11 @@ app.post("/search", function(req, res) {
                     });
                 } else {
                     console.log("MY USERNAME IS", req.cookies.key);
-                    db.collection("users").findOne({username: req.cookies.key}, (err, user) => {
+                    db.collection("users").findOne({username: req.cookies.key, verified: "yes"}, (err, user) => {
                         if (user) {
                             var follow = user.following;
                             console.log("FOLLOWING", follow);
-                            db.collection("users").find({username:{$in: follow}}).toArray((err,val) => {
+                            db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
                                     console.log("Number returned from toArray", val.length);
                                     // var tweets = val.tweets;
 
@@ -543,7 +543,7 @@ app.post("/search", function(req, res) {
                 console.log("FOLLOWING IS FALSE");
 
                 if (username) {
-                    db.collection("users").findOne({"username": username}, (err, user) => {
+                    db.collection("users").findOne({"username": username, verified: "yes"}, (err, user) => {
                         if (user) {
                             var tweets = user.tweets;
 
@@ -689,18 +689,18 @@ app.post("/follow", function (request, response) {
             var otherUser = request.body.username; //other user to folllow or unfollow
 
             if (followbool == "true") {
-                db.collection("users").findOne({"username": otherUser}, (error, document) => {  
+                db.collection("users").findOne({"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
                     } else if (document == null) {
                         response.json({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
                     } else {
-                        db.collection("users").update({"username": otherUser},{ $addToSet: {"followers": currentUser}},
+                        db.collection("users").update({"username": otherUser, verified: "yes"},{ $addToSet: {"followers": currentUser}},
                             (err, result) => {
                                 if (err) {
                                     response.json({status: "error", error: err});
                                 } else {
-                                    db.collection("users").update({"username": currentUser},{$addToSet: {"following":otherUser}},
+                                    db.collection("users").update({"username": currentUser, verified: "yes"},{$addToSet: {"following":otherUser}},
                                     (err, result) => {
                                         if (err) {
                                             response.json({status: "error", error: err});
@@ -713,18 +713,18 @@ app.post("/follow", function (request, response) {
                     }
                 });
             } else if (followbool == "false"){
-                db.collection("users").findOne( {"username": otherUser}, (error, document) => {  
+                db.collection("users").findOne( {"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
                     } else if (document == null) {
                         response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
                     } else {
-                        db.collection("users").update({"username": otherUser},{ $pull: {"followers": currentUser}},
+                        db.collection("users").update({"username": otherUser, verified: "yes"},{ $pull: {"followers": currentUser}},
                         (err, result) => {
                             if (err) {
                                 response.json({status: "error", error: err});
                             } else {
-                                db.collection("users").update({"username": currentUser},{ $pull: {"following": otherUser}},
+                                db.collection("users").update({"username": currentUser, verified: "yes"},{ $pull: {"following": otherUser}},
                                 (err,result) => {
                                     if (err) {
                                         response.json({status: "error", error: err});
@@ -753,7 +753,7 @@ app.get("/user/:username", function (request, response) {
 
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
-            db.collection("users").findOne({"username": username}, (error, document) => {
+            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
                             var following = document.following;
                             var followingCount = Object.keys(following).length;
@@ -784,7 +784,7 @@ app.post("/user", function (request, response) {
     
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
         if (doc) { 
-            db.collection("users").findOne({"username": request.cookies.key}, function (error, document) {
+            db.collection("users").findOne({"username": request.cookies.key, verified: "yes"}, function (error, document) {
 
                 var following = document.following;
                 var followingCount = Object.keys(following).length;
@@ -816,7 +816,7 @@ app.get("/user/:username/followers", function (request, response) {
 
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
-            db.collection("users").findOne({"username": username}, (error, document) => {
+            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
                     response.json({
                         status: "OK", 
@@ -840,7 +840,7 @@ app.get("/user/:username/following", function (request, response) {
 
     db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
-            db.collection("users").findOne({"username": username}, (error, document) => {
+            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
                     response.json({
                         status: "OK", 
