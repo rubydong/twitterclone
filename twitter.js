@@ -146,7 +146,7 @@ app.get("/logout", function(request, response) {
 		db.collection("sessions").remove({"sessionkey": request.cookies.key},1);
 		response.clearCookie("key");
 		console.log(request.cookies.key);
-    //response.redirect('/login');
+    response.redirect('/login');
 });
 
 //grading
