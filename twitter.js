@@ -689,14 +689,17 @@ app.get("/follow", function (request, response) {
 app.post("/follow", function (request, response) {
     console.log("IN FOLLOW POST");
 
-    var followbool = request.body.followbool;
+    var followbool = true;
+
+    if(request.body.followbool != null)
+        followbool = request.body.followbool;
     
 	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) { 
             var currentUser = request.cookies.key;
             var otherUser = request.body.username; //other user to folllow or unfollow
 
-            if (followbool == "true") {
+            if (followbool == true) {
                 db.collection("users").findOne({"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
@@ -720,7 +723,7 @@ app.post("/follow", function (request, response) {
                         });
                     }
                 });
-            } else if (followbool == "false"){
+            } else if (followbool == false) {
                 db.collection("users").findOne( {"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
