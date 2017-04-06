@@ -415,7 +415,7 @@ app.post("/search", function(req, res) {
 	var limit = 25;
 	var query = '';
 	var username = req.body.username;
-	var following = true;
+	var following = 'true';
 	var limitCounter = 0;
 
 	if (req.body.limit) {
@@ -427,7 +427,7 @@ app.post("/search", function(req, res) {
 	if (req.body.q)
 		query = req.body.q;
     if (req.body.following)
-        following = req.body.following
+        following = req.body.following + '';
 	// if (req.body.following)
 	// 	following = req.body.following;
 
@@ -437,7 +437,7 @@ app.post("/search", function(req, res) {
 		if (doc) {
 			tweetsArr = new Array();
             console.log("WHAT IS FOLLOWING", typeof(req.body.following));
-            if (following) {
+            if (following == 'true') {
                 console.log("FOLLOWING IS TRUE");
 
                 if (username) {
