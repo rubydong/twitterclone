@@ -4,6 +4,7 @@ var bodyParser = require("body-parser");
 var nodemailer = require("nodemailer");
 var cookieParser = require("cookie-parser");
 var MongoClient = require("mongodb").MongoClient;
+var ObjectID = require("mongodb").ObjectID;
 
 var app = express();
 
@@ -219,86 +220,41 @@ app.post("/additem", function (req, res) {
 
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
-            var id = (Math.random() + 1).toString(36).substring(15);
+            var id = new ObjectID().toHexString();
 
-            var documentA = new Map();
-            documentA.set("id", id);
-            documentA.set("username", sessionkey);
-            documentA.set("content", content);
-            documentA.set("timestamp", timestamp);
-            // {
-            //     "id": id,   
-            //     "username": sessionkey,
-            //     "content": content,
-            //     "timestamp": timestamp
-            // };
+            db.collection("users").update({username: sessionkey},
+                {
+                  $push: {
+                        "tweets": {
+                              "id": id,   
+                              "username": sessionkey,
+                              "content": content,
+                              "timestamp": timestamp
+                        }
+                    } 
+                }, {w:1}, (error, result) => {
+                    if (error) {
+                        console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
+                        res.json({status: "ERROR" });
+                    } else {
+                        var documentA = {
+                            "id": id,   
+                            "username": sessionkey,
+                            "content": content,
+                            "timestamp": timestamp
+                        };
                         
-
-            db.collection("tweets").insert({"id":documentA.get("id"),"username":documentA.get("username"),
-                "content":documentA.get("content"),"timestamp":documentA.get("timestamp")}, {w:1}, (err, result) => {
-                if (error) {
-                    console.error(new Error("ERROR INSERTING TWEET TO DB"));
-                    res.json({status: "ERROR"});
-                } else {
-                    db.collection("users").update({username: sessionkey, verified: "yes"},
-                    {
-                        $push: {
-                            "tweets": {
-                                "id": documentA.get("id"),
-                                "username": sessionkey,
-                                "content": documentA.get("content"),
-                                "timestamp": documentA.get("timestamp")
-                            }
-                        }
-                    }, {w:1}, (err, result) => {
-                        if (err) {
-                             console.error(new Error("ERROR INSERTING TWEET TO DB"));
-                            res.json({status: "ERROR"});
-                        } else {
-                                console.log("SUCCESS INSERTING", id);
-                                res.json({status: "OK", id: documentA.get("id")});
-                        }
-                    });
-                }
+                        db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
+    							if (error) {
+    								console.error(new Error("ERROR INSERTING TWEET TO DB"));
+                                    res.json({status: "ERROR"});
+    							} else { 
+                                    console.log("SUCCESS INSERTING", id);
+    								res.json({status: "OK", id: id});
+    							}
+    					});
+                    }
             });
-            // db.collection("users").update({username: sessionkey, verified: "yes"},
-            //     {
-            //       $push: {
-            //             "tweets": {
-            //                   "id": id,   
-            //                   "username": sessionkey,
-            //                   "content": content,
-            //                   "timestamp": timestamp
-            //             }
-            //         } 
-            //     }, {w:1},(error, result) => {
-            //     if (error) {
-            //             console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
-            //             console.log(error);
-            //             res.json({status: "ERROR" });
-            //         } else {
-            //             // console.log(result);
-            //             var tweets = result.tweets;
-            //             console.log(tweets);
-
-            //             var documentA = {
-            //                 "id": id,   
-            //                 "username": sessionkey,
-            //                 "content": content,
-            //                 "timestamp": timestamp
-            //             };
-                        
-            //             db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
-            //                     if (error) {
-            //                         console.error(new Error("ERROR INSERTING TWEET TO DB"));
-            //                         res.json({status: "ERROR"});
-            //                     } else { 
-            //                         console.log("SUCCESS INSERTING", id);
-            //                         res.json({status: "OK", id: id});
-            //                     }
-            //             });
-            //         }
-            // });
         } else {
             res.json({status: "error", error: "USER IS NOT LOGGED IN"});
         }
@@ -315,9 +271,7 @@ app.get("/item/:id", function (request, response) {
     // console.log("param id is.." + id, typeof(id));
 	db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
-            // var x = parseInt(id);
-            // console.log("PREPARING TO SEARCH FOR", x);
-            db.collection("tweets").findOne({"id": id, username: sessionkey}, (error, documentA) => {
+            db.collection("tweets").findOne({"id": id}, (error, documentA) => {
                 if (error) {
                     console.log("ERROR SEARCHING FOR TWEET WITH ID");
                     response.json({status: "ERROR"});
@@ -403,7 +357,7 @@ app.post("/item", function (request, response) {
 		//if (doc) {
 		if (request.cookies.key != null) {
 		console.log("POST id is ", id);
-        db.collection("tweets").findOne( { "id": parseInt(id) },function (error, document) {
+        db.collection("tweets").findOne( { "id": id },function (error, document) {
 			if (error) { console.log(error); }
 			
             else if (document) {
@@ -470,7 +424,7 @@ app.post("/search", function(req, res) {
 
 	if (req.body.limit) {
 		limit = parseInt(req.body.limit);
-        limit = limit > 100 ? 100 : limit;
+        limit = limit > 99 ? 99 : limit;
 	}
 	if (req.body.timestamp)
 		timestamp = parseInt(req.body.timestamp) * 1000;
