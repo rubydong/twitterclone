@@ -232,9 +232,10 @@ app.post("/additem", function (req, res) {
                               "timestamp": timestamp
                         }
                     } 
-                }, new: true}, {w:1}, (error, result) => {
+                }, new: true, w:1}, (error, result) => {
                     if (error) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
+                        console.log(error);
                         res.json({status: "ERROR" });
                     } else {
                         console.log(result);
