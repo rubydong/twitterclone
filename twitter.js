@@ -677,7 +677,9 @@ app.post("/follow", function (request, response) {
     var followbool = true;
 
     if(request.body.followbool != null)
-        followbool = request.body.followbool;
+        followbool = request.body.follow;
+
+    console.log("BOOL IS:", request.body.follow);
     
 	db.collection("sessions").findOne({"sessionkey":sessionkey},{"sessionkey": 1}, (error, doc) => {
 		if (doc) { 
