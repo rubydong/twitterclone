@@ -427,6 +427,8 @@ app.post("/search", function(req, res) {
 	if (!req.body.following)
 		following = req.body.following;
 
+    query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
+
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			tweetsArr = new Array();
@@ -446,7 +448,7 @@ app.post("/search", function(req, res) {
                                     var tweets = followinguser.tweets;
 
                                     for (var i = 0; i < tweets.length && limitCounter < limit; i++) {
-                                        if ( (tweets[i].content.indexOf(query) != -1) && 
+                                        if ( (tweets[i].content.match(query) != null) && 
                                              (tweets[i].timestamp <= timestamp)) {
                                             tweetsArr.push({
                                                 id: tweets[i].id,
@@ -484,7 +486,7 @@ app.post("/search", function(req, res) {
                                         var tweets = val[i].tweets;
 
                                         for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
-                                            if ( (tweets[j].content.indexOf(query) != -1) && 
+                                            if ( (tweets[j].content.match(query) != null) && 
                                                  (tweets[j].timestamp <= timestamp)) {
                                                 tweetsArr.push({
                                                     id: tweets[j].id,
@@ -513,7 +515,7 @@ app.post("/search", function(req, res) {
                             var tweets = user.tweets;
 
                             for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
-                                if ( (tweets[j].content.indexOf(query) != -1) && 
+                                if ( (tweets[j].content.match(query) != null) && 
                                      (tweets[j].timestamp <= timestamp)) {
                                     tweetsArr.push({
                                         id: tweets[j].id,
@@ -532,7 +534,6 @@ app.post("/search", function(req, res) {
                     });
 
                 } else {
-                    query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
                      db.collection("tweets").find(
                      {$and: [
                          {content: {$regex: query }},
