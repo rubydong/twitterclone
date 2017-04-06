@@ -77,27 +77,35 @@ app.post("/adduser", function (req, res) {
     if (e_username && e_password && e_email) {
         //check if username/email has been taken already
         console.log("ATTEMPTING TO CREATE USER", e_username);
-        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]}, {w:1},(err, doc) => {
+        db.collection("users").findOne({username: e_username}, (err, doc) => {
             if (doc) {
                 console.log("FOUND USER", e_username);
                 res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
             } else {
-                var newuser = {
-                    "username": e_username,
-                    "password": e_password,
-                    "email": e_email,
-                    "verified": e_emailkey, 
-                    "tweets": [],
-                    "followers": [],
-                    "following": []
-                };
-                db.collection("users").insert(newuser,{w:1}, (err, user) => {
-                    if (err)
-                        console.error(new Error("ERROR inserting newuser", err));
-                    else
-                        res.json({status: "OK"});
-                });
+                db.collection("users").findOne({email: e_email}, (err, doc) => {
+                    if (doc) {
+                        console.log("FOUND USER", e_username);
+                        res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
+                    } else {
+                        var newuser = {
+                            "username": e_username,
+                            "password": e_password,
+                            "email": e_email,
+                            "verified": e_emailkey, 
+                            "tweets": [],
+                            "followers": [],
+                            "following": []
+                        };
+                        db.collection("users").insert(newuser,{w:1}, (err, user) => {
+                            if (err)
+                                console.error(new Error("ERROR inserting newuser", err));
+                            else
+                                res.json({status: "OK"});
+                        });
+                    }
+                })
             }
+
         });
     } else {
         res.json({status: "ERROR", error: "PLEASE FILL IN ALL FIELDS"});
