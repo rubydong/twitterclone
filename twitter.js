@@ -270,9 +270,9 @@ app.get("/item/:id", function (request, response) {
     // console.log("param id is.." + id, typeof(id));
 	db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
-            var x = parseInt(id);
+            // var x = parseInt(id);
             // console.log("PREPARING TO SEARCH FOR", x);
-            db.collection("tweets").findOne({"id": x}, (error, documentA) => {
+            db.collection("tweets").findOne({"id": id}, (error, documentA) => {
                 if (error) {
                     console.log("ERROR SEARCHING FOR TWEET WITH ID");
                     response.json({status: "ERROR"});
@@ -311,20 +311,20 @@ app.delete("/item/:id", function (request, response) {
         if (doc) {
             db.collection("users").update({"username": sessionkey, "verified": "yes"},
                 {
-                  $pull: {"tweets": { "id": parseInt(id)}} 
+                  $pull: {"tweets": { "id": id}} 
                 }, {w:1}, (error, result) => {
                     if (error) {
                         console.error(new Error("ERROR UPDATING TWEET"));
                         response.json({status: "ERROR" });
                     } else {
 
-                        db.collection("tweets").findOne( {"id": parseInt(id) }, (error, document) => {
+                        db.collection("tweets").findOne( {"id": id }, (error, document) => {
                             if (error) {
                                 console.error(new Error("ERROR FINDING TWEET WITH ID"));
                                 response.json({status: "ERROR"});
                             } else if (document) {
                                 if (document.username == sessionkey) {
-                                    db.collection("tweets").remove({"id": parseInt(id)}, {w:1}, (error, result) => {
+                                    db.collection("tweets").remove({"id": id}, {w:1}, (error, result) => {
                                         if (error) {
                                             console.error(new Error("ERROR REMOVING TWEET"));
                                             response.json({status:"ERROR"});
