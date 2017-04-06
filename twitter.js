@@ -565,7 +565,7 @@ app.post("/search", function(req, res) {
                                 }
                             }
                             console.log("Number of tweets", tweetsArr.length);
-                            // console.log(tweetsArr);
+                            console.log(tweetsArr);
                             res.json({status: "OK",items: tweetsArr});
                      });
                 }
