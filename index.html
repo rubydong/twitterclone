@@ -132,8 +132,8 @@
                                     var timestamp = d.item.timestamp;
                                     var date = new Date (timestamp);
                                     var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-
-                                    $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
+                                    
+                                    $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
                                 }
                             });                         
                         }
