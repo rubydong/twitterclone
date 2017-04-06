@@ -15,7 +15,7 @@
     
     <body>
         <div class="navigation">
-                <a href="/logout">LOGOUT</a>
+                <a href="/logout" id="logoutLink">LOGOUT</a>
                 <a href="/follow">FOLLOW</a>
                 <a href="/search">SEARCH</a>
                 <a href="" id="profileClick">PROFILE</a>
@@ -51,6 +51,13 @@
         <script>
 
             $(document).ready(function () {
+                $("#logoutLink").click(function(event) {
+                    $.ajax ({
+                        "url": "/logout",
+                        "type": "GET"
+                    });
+                });
+                
                 $.ajax({
                     url: "/whoami", 
                     type: "POST"
@@ -61,7 +68,6 @@
                         
                     }
                 });
-                
                 
                  $("#searchForm").submit(function (event) {
                     event.preventDefault(); 
@@ -84,7 +90,12 @@
                             $(".everything").html("");
                             $("#addInfoHere").html("");
                             for (var i = 0; i < data.items.length; i++) {
-                                $("#addInfoHere").prepend ("<div class='tweet'> Id #" + data.items[i].id + " @" + data.items[i].username + " Timestamp [" + data.items[i].timestamp + "]<br>" + data.items[i].content + "</div>");
+                                var timestamp = data.items[i].timestamp;
+                                var date = new Date (timestamp);
+                                var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+
+                                $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.items[i].username + " Id #" + data.items[i].id + "   " + date + "</div>" + data.items[i].content + "</div>");
+                    
                             }
                         } else {
                             window.location = "/login";
@@ -106,7 +117,11 @@
                             if (data.status=="OK"){
                                 $(".everything").html("");
                                 $("#addInfoHere").html("");
-                                $("#addInfoHere").html("<div class='tweet'> Id #" + data.item.id + " @" + data.item.username + " Timestamp [" + data.item.timestamp + "]<br>" + data.item.content + "</div>");
+                                var timestamp = data.item.timestamp;
+                                var date = new Date (timestamp);
+                                var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+
+                                $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.item.username + " Id #" + data.item.id + "   " + date + "</div>" + data.item.content + "</div>");
                             }
                         else 
                             $("#addInfoHere").prepend("<p style='text-align:center'>" + data.error);

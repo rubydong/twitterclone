@@ -12,7 +12,7 @@
     <body>
 
         <div class="navigation">
-                <a href="/logout">LOGOUT</a>
+                <a href="/logout" id="logoutLink">LOGOUT</a>
                 <a href="/follow">FOLLOW</a>
                 <a href="/search">SEARCH</a>
                 <a href="" id="profileClick">PROFILE</a>
@@ -36,14 +36,13 @@
             </div>
 
             <div id="tweetsInfo">
-
                 <div class="tweet" ng-repeat = "tweet in newsfeed.items |orderBy:'-'">
-                    Id #{{tweet.id}} @{{tweet.username}}
-                    Timestamp: {{tweet.timestamp}}
+                    <img src='' align='left'> @{{tweet.username}}
+                    Id #{{tweet.id}} 
+                    {{tweet.timestamp | date:'M/d/yyyy'}}
+                    <a href="" class="delete" id= "{{tweet.id}}" ng-click=deleteTweet(tweet.id)>{{deleteButton}}</a>
                     <br>
                     {{tweet.content}} 
-                    
-                    <a href="" class="delete" id= "{{tweet.id}}" ng-click=deleteTweet(tweet.id)><br>{{deleteButton}}</a>
                 </div>
             </div>
             
@@ -79,14 +78,22 @@
                 userinfo.success(function (data) {
                     if (data.status == "OK")
                         $scope.userinfo = data;
+                        
                     else 
                         $(".everything").html("This profile does not exist.");
                 });
+                
+                 $("#logoutLink").click(function(event) {
+                    var logout = $http.get("/logout");
+                });
+                
+                
                 
                 var newsfeed = $http.post("/search", JSON.stringify({username:username}));
                 newsfeed.success(function (data) {
                     if (data.status == "OK") {
                         $scope.newsfeed = data;
+//                        alert(JSON.stringify(data));
                         $scope.deleteButton = "";
                         if ($scope.profileUser == $scope.whoami.username)
                             $scope.deleteButton = "delete";
