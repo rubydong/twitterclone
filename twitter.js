@@ -418,6 +418,7 @@ app.post("/search", function(req, res) {
 
 	if (req.body.limit) {
 		limit = parseInt(req.body.limit);
+        limit = limit > 99 ? 99 : limit;
 	}
 	if (req.body.timestamp)
 		timestamp = parseInt(req.body.timestamp) * 1000;
