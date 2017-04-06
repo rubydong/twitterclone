@@ -270,7 +270,7 @@ app.get("/item/:id", function (request, response) {
 	db.collection("sessions").findOne({sessionkey: request.cookies.key}, {sessionkey: 1}, (error, doc) => {
         if (doc) {
             var x = parseInt(id);
-            console.log("PREPARING TO SEARCH FOR", x);
+            // console.log("PREPARING TO SEARCH FOR", x);
             db.collection("tweets").findOne({"id": x}, (error, documentA) => {
                 if (error) {
                     console.log("ERROR SEARCHING FOR TWEET WITH ID");
@@ -426,8 +426,8 @@ app.post("/search", function(req, res) {
 		timestamp = parseInt(req.body.timestamp) * 1000;
 	if (req.body.q)
 		query = req.body.q;
-    if (req.body.following == 'false')
-        following = false;
+    if (req.body.following)
+        following = req.body.following
 	// if (req.body.following)
 	// 	following = req.body.following;
 
@@ -437,7 +437,7 @@ app.post("/search", function(req, res) {
 		if (doc) {
 			tweetsArr = new Array();
             console.log("WHAT IS FOLLOWING", typeof(req.body.following));
-            if (following == true) {
+            if (following) {
                 console.log("FOLLOWING IS TRUE");
 
                 if (username) {
