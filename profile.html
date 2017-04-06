@@ -89,7 +89,7 @@
                 
                 
                 
-                var newsfeed = $http.post("/search", JSON.stringify({username:username}));
+                var newsfeed = $http.post("/search", JSON.stringify({username:username, following: false}));
                 newsfeed.success(function (data) {
                     if (data.status == "OK") {
                         $scope.newsfeed = data;
