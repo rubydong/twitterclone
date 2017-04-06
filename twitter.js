@@ -532,7 +532,7 @@ app.post("/search", function(req, res) {
                     });
 
                 } else {
-                    query = ".*(" + query.trim().replace(" ", "|")+").*";
+                    query = ".*(" + query.trim().replace(/\s+/, "|")+").*";
                     console.log("QUERY IS", query);
                      db.collection("tweets").find(
                      {$and: [
