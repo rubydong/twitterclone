@@ -560,10 +560,11 @@ app.post("/search", function(req, res) {
                                 }
                             }
 
-                            console.log("FINISHED USERNAME IS")
+                            console.log("FINISHED USERNAME IS", username);
                             console.log(tweetsArr);
                             res.json({status: "OK", items: tweetsArr});
                         } else {   
+                            console.log("FINISHED USERNAME WAS NOT FOUND AT", username);
                             res.json({status: "OK", items: []});
                         }
                     });
