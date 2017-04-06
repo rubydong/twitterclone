@@ -560,6 +560,7 @@ app.post("/search", function(req, res) {
                                 }
                             }
 
+                            console.log("FINISHED USERNAME IS")
                             console.log(tweetsArr);
                             res.json({status: "OK", items: tweetsArr});
                         } else {   
