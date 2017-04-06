@@ -590,7 +590,8 @@ app.post("/search", function(req, res) {
                                 
                             }
                             console.log("Number of tweets", tweetsArr.length);
-                            console.log(tweetsArr);
+                            if (req.body.query != null)
+                                console.log(tweetsArr);
                             res.json({status: "OK",items: tweetsArr});
                      });
                 }
