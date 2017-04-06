@@ -215,7 +215,7 @@ app.post("/additem", function (req, res) {
 
     var content = req.body.content;
     var timestamp = new Date().getTime();
-    var sessionkey = request.cookies.key;
+    var sessionkey = req.cookies.key;
 
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
@@ -421,7 +421,7 @@ app.post("/search", function(req, res) {
 	var limit = 25;
 	var query = '';
 	var username = req.body.username;
-    var sessionkey = request.cookies.key;
+    var sessionkey = req.cookies.key;
 	var following = true;
 	var limitCounter = 0;
 
