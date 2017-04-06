@@ -317,7 +317,7 @@ app.get("/item/:id", function (request, response) {
         if (doc) {
             // var x = parseInt(id);
             // console.log("PREPARING TO SEARCH FOR", x);
-            db.collection("tweets").findOne({"id": id}, (error, documentA) => {
+            db.collection("tweets").findOne({"id": id, username: sessionkey}, (error, documentA) => {
                 if (error) {
                     console.log("ERROR SEARCHING FOR TWEET WITH ID");
                     response.json({status: "ERROR"});
