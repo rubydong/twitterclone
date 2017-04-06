@@ -222,18 +222,17 @@ app.post("/additem", function (req, res) {
             var id = (Math.random() + 1).toString(36).substring(15);
 
             db.collection("users").findAndModify({
-                query: {username: sessionkey, verified: "yes"},
-                update: {
-                  $push: {
-                        "tweets": {
+                query: { username: sessionkey, verified: "yes" },
+                update: { $push: { "tweets": {
                               "id": id,   
                               "username": sessionkey,
                               "content": content,
                               "timestamp": timestamp
-                        }
-                    } 
-                }, new: true, w:1}, (error, result) => {
-                    if (error) {
+                        }} },
+                new: true,
+                w: 1
+            }, (error, result) => {
+                if (error) {
                         console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         console.log(error);
                         res.json({status: "ERROR" });
@@ -247,16 +246,53 @@ app.post("/additem", function (req, res) {
                         };
                         
                         db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
-    							if (error) {
-    								console.error(new Error("ERROR INSERTING TWEET TO DB"));
+                                if (error) {
+                                    console.error(new Error("ERROR INSERTING TWEET TO DB"));
                                     res.json({status: "ERROR"});
-    							} else { 
+                                } else { 
                                     console.log("SUCCESS INSERTING", id);
-    								res.json({status: "OK", id: id});
-    							}
-    					});
+                                    res.json({status: "OK", id: id});
+                                }
+                        });
                     }
             });
+
+
+         //    db.collection("users").findAndModify({
+         //        query: {username: sessionkey, verified: "yes"},
+         //        update: { $push: {
+         //                "tweets": {
+         //                      "id": id,   
+         //                      "username": sessionkey,
+         //                      "content": content,
+         //                      "timestamp": timestamp
+         //                }
+         //            } 
+         //        }, new: true, w:1}, (error, result) => {
+         //            if (error) {
+         //                console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
+         //                console.log(error);
+         //                res.json({status: "ERROR" });
+         //            } else {
+         //                console.log(result);
+         //                var documentA = {
+         //                    "id": result.tweets[result.tweets.length].id,   
+         //                    "username": sessionkey,
+         //                    "content": content,
+         //                    "timestamp": timestamp
+         //                };
+                        
+         //                db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
+    					// 		if (error) {
+    					// 			console.error(new Error("ERROR INSERTING TWEET TO DB"));
+         //                            res.json({status: "ERROR"});
+    					// 		} else { 
+         //                            console.log("SUCCESS INSERTING", id);
+    					// 			res.json({status: "OK", id: id});
+    					// 		}
+    					// });
+         //            }
+         //    });
         } else {
             res.json({status: "error", error: "USER IS NOT LOGGED IN"});
         }
