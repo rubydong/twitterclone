@@ -701,6 +701,7 @@ app.post("/follow", function (request, response) {
                                         if (err) {
                                             response.json({status: "error", error: err});
                                         } else {
+                                            console.log(currentUser, "FOLLOWED", otherUser);
                                             response.json({status: "OK"});  
                                         }
                                     }); 
@@ -725,6 +726,7 @@ app.post("/follow", function (request, response) {
                                     if (err) {
                                         response.json({status: "error", error: err});
                                     } else {
+                                        console.log(currentUser, "UNFOLLOWED", otherUser);
                                         response.json({status: "OK"});  
                                     }
                                 });
