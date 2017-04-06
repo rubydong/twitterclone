@@ -684,7 +684,7 @@ app.post("/follow", function (request, response) {
             var currentUser = sessionkey;
             var otherUser = request.body.username; //other user to folllow or unfollow
 
-            if (followbool == true) {
+            if (following == 'true' || following == true) {
                 db.collection("users").findOne({"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
@@ -709,7 +709,7 @@ app.post("/follow", function (request, response) {
                         });
                     }
                 });
-            } else if (followbool == false) {
+            } else {
                 db.collection("users").findOne( {"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
@@ -734,8 +734,6 @@ app.post("/follow", function (request, response) {
                         });
                     }
                 });
-            } else {
-                response.json({status: "error", error: "USER DID NOT ENTER CORRECT PARAMETERS"});
             }
         } else {
             response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
