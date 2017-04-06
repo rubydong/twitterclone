@@ -684,7 +684,7 @@ app.post("/follow", function (request, response) {
             var currentUser = sessionkey;
             var otherUser = request.body.username; //other user to folllow or unfollow
 
-            if (following == 'true' || following == true) {
+            if (followbool == 'true' || followbool == true) {
                 db.collection("users").findOne({"username": otherUser, verified: "yes"}, (error, document) => {  
                     if (error) {
                         response.json({status: "error", error: error});
