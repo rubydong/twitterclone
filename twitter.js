@@ -76,8 +76,10 @@ app.post("/adduser", function (req, res) {
     
     if (e_username && e_password && e_email) {
         //check if username/email has been taken already
-        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]},(err, doc) => {
+        console.log("ATTEMPTING TO CREATE USER", e_username);
+        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]}, {w:1},(err, doc) => {
             if (doc) {
+                console.log("FOUND USER", e_username);
                 res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
             } else {
                 var newuser = {
