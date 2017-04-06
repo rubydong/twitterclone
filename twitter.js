@@ -377,9 +377,9 @@ app.post("/item", function (request, response) {
 });
 
 //front end
-// app.get("/search", function(request, response) {   
-//    response.sendFile(path.join(__dirname + "/search.html")); 
-// });
+app.get("/search", function(request, response) {   
+   response.sendFile(path.join(__dirname + "/search.html")); 
+});
 
 //front end to get everyone's profile
 app.get("/profile/:username", function (request, response) {
