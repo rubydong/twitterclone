@@ -490,7 +490,7 @@ app.post("/search", function(req, res) {
                     });
                 } else {
                     console.log("MY USERNAME IS", req.cookies.key);
-                    db.collection("users").findOne({username: req.cookies.key, verified: "yes"}, (err, user) => {
+                    db.collection("users").findOne({username: sessionkey, verified: "yes"}, (err, user) => {
                         if (user) {
                             var follow = user.following;
                             console.log("FOLLOWING", follow);
@@ -673,14 +673,15 @@ app.get("/follow", function (request, response) {
 app.post("/follow", function (request, response) {
     console.log("IN FOLLOW POST");
 
+    var sessionkey = request.cookies.key;
     var followbool = true;
 
     if(request.body.followbool != null)
         followbool = request.body.followbool;
     
-	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1}, (error, doc) => {
+	db.collection("sessions").findOne({"sessionkey":sessionkey},{"sessionkey": 1}, (error, doc) => {
 		if (doc) { 
-            var currentUser = request.cookies.key;
+            var currentUser = sessionkey;
             var otherUser = request.body.username; //other user to folllow or unfollow
 
             if (followbool == true) {
@@ -745,8 +746,9 @@ app.get("/user/:username", function (request, response) {
     console.log("IN /USER/:username GET");
     
     var username = request.params.username;
+    var sessionkey = request.cookies.key;
 
-    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
             db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
@@ -808,8 +810,9 @@ app.get("/user/:username/followers", function (request, response) {
     console.log("IN USER/:username/FOLLOWERS GET");
 
     var username = request.params.username;
+    var sessionkey = request.cookies.key;
 
-    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
             db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
@@ -832,8 +835,9 @@ app.get("/user/:username/following", function (request, response) {
     console.log("IN USER/:username/following GET");
     
     var username = request.params.username;
+    var sessionkey = request.cookies.key;
 
-    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, (error, doc) => {
+    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
         if (doc) {
             db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
                 if (document) {
