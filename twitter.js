@@ -224,12 +224,12 @@ app.post("/additem", function (req, res) {
             db.collection("users").findAndModify(
                 { username: sessionkey, verified: "yes" },
                 [],
-                {$set: { $push: { "tweets": {
+                { $push: { "tweets": {
                               "id": id,   
                               "username": sessionkey,
                               "content": content,
                               "timestamp": timestamp
-                        }} }},
+                        }} },
                { new: true},
                 {w: 1}
             , (error, result) => {
