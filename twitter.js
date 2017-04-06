@@ -28,7 +28,7 @@ MongoClient.connect("mongodb://localhost:27017/twitter", (err,database) => {
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
     if (err) {
-        return console.error(new Error("Attempting to connect to db:", error));
+        return //console.error(new Error("Attempting to connect to db:", error));
     } else {
         db = database;
         //console.log("Connected to MongoDB");
@@ -122,14 +122,14 @@ app.post("/login", function (request, response) {
             if (doc) {
 				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
 					if (err) {
-						console.error(new Error("ERROR attempting login:", err));
+						//console.error(new Error("ERROR attempting login:", err));
 					} else {
 						response.cookie('key', username); // used to communicate with sessionkey in db
 						response.json({status: "OK"});
 					}
 				});
             } else {
-				console.error(new Error("LOGIN FAILED with",username,password));
+				//console.error(new Error("LOGIN FAILED with",username,password));
                 response.json({status:"ERROR", error: "INVALID LOGIN"});
             }
         });
@@ -159,7 +159,7 @@ app.post("/logout", function (request, response) {
 
 		db.collection("sessions").remove({"sessionkey": sessionkey}, {w:1}, (err) => {
             if (err) {
-                console.error(new Error("ERROR deleting session key"));
+                //console.error(new Error("ERROR deleting session key"));
                 response.json({status: "ERROR"});
             } else {
         		//console.log("USER",request.cookies.key, "logged out");
@@ -185,7 +185,7 @@ app.post("/verify", function (req, res) {
     if (e_email && e_key) {
         db.collection("users").findOne({email: e_email}, (err, doc) => {
             if (err) { 
-                console.error(new Error("DID NOT FIND USER:", e_email, err));
+                //console.error(new Error("DID NOT FIND USER:", e_email, err));
                 res.json({status: "ERROR"});
             } else if (doc) {
                 var new_emailkey = doc.verified;
@@ -193,7 +193,7 @@ app.post("/verify", function (req, res) {
                     db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
                         {w:1}, (err,result) => {
                             if (err) {
-                                console.error(new Error("VERIFY FAILED", err))
+                                //console.error(new Error("VERIFY FAILED", err))
                                 res.json({status: "ERROR"});
                             } else {
                                 res.json({status:"OK"});
@@ -219,7 +219,7 @@ app.post("/additem", function (req, res) {
     var timestamp = new Date().getTime();
     var sessionkey = req.cookies.key;
 
-	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
+	db.collection("sessions").find({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
             var id = new ObjectID().toHexString();
 
@@ -235,7 +235,7 @@ app.post("/additem", function (req, res) {
                     } 
                 }, {w:1}, (error, result) => {
                     if (error) {
-                        console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
+                        //console.error(new Error("ERROR INSERTING TWEET TO", req.cookies.key));
                         res.json({status: "ERROR" });
                     } else {
                         var documentA = {
@@ -247,7 +247,7 @@ app.post("/additem", function (req, res) {
                         
                         db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
     							if (error) {
-    								console.error(new Error("ERROR INSERTING TWEET TO DB"));
+    								//console.error(new Error("ERROR INSERTING TWEET TO DB"));
                                     res.json({status: "ERROR"});
     							} else { 
                                     //console.log("SUCCESS INSERTING", id);
@@ -314,30 +314,30 @@ app.delete("/item/:id", function (request, response) {
                   $pull: {"tweets": { "id": id}} 
                 }, {w:1}, (error, result) => {
                     if (error) {
-                        console.error(new Error("ERROR UPDATING TWEET"));
+                        //console.error(new Error("ERROR UPDATING TWEET"));
                         response.json({status: "ERROR" });
                     } else {
 
                         db.collection("tweets").findOne( {"id": id }, (error, document) => {
                             if (error) {
-                                console.error(new Error("ERROR FINDING TWEET WITH ID"));
+                                //console.error(new Error("ERROR FINDING TWEET WITH ID"));
                                 response.json({status: "ERROR"});
                             } else if (document) {
                                 if (document.username == sessionkey) {
                                     db.collection("tweets").remove({"id": id}, {w:1}, (error, result) => {
                                         if (error) {
-                                            console.error(new Error("ERROR REMOVING TWEET"));
+                                            //console.error(new Error("ERROR REMOVING TWEET"));
                                             response.json({status:"ERROR"});
                                         } else {
                                             response.json({status: "OK"});
                                         }
                                     });
                                 } else {
-                                    console.error(new Error("DID NOT FIND TWEET WITH ID"));
+                                    //console.error(new Error("DID NOT FIND TWEET WITH ID"));
                                     response.json({status: "ERROR"});
                                 }
                             } else {
-                                console.error(new Error("DID NOT FIND TWEET WITH ID"));
+                                //console.error(new Error("DID NOT FIND TWEET WITH ID"));
                                 response.json({status: "ERROR"});
                             }
                         });
@@ -345,7 +345,7 @@ app.delete("/item/:id", function (request, response) {
                     }
             });
         } else {
-            console.error("NO SESSION FOUND");
+            //console.error("NO SESSION FOUND");
             response.json({status: "ERROR"});
         }
 	});
@@ -439,7 +439,7 @@ app.post("/search", function(req, res) {
     query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
     //console.log("USERNAME IS", username);
 
-	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1}, (error, doc) => {
+	db.collection("sessions").find({"sessionkey": sessionkey},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
 			// tweetsArr = new Array();
             //console.log("WHAT IS FOLLOWING", typeof(req.body.following));
@@ -448,14 +448,14 @@ app.post("/search", function(req, res) {
 
                 if (username) {
                     //console.log("USERNAME IS INPUTTED")
-                    db.collection("users").findOne({"username": sessionkey, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
+                    db.collection("users").find({"username": sessionkey, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
                         if (loggeduser) {
                             //console.log(req.cookies.key, "IS FOLLOWING", username);
 
 
-                            db.collection("users").findOne({"username": username, verified: "yes"}, (error, followinguser) => {
+                            db.collection("users").find({"username": username, verified: "yes"}, (error, followinguser) => {
                                 if (followinguser) {
-                                    var tweets = followinguser.tweets;
+                                    var tweets = followinguser[0].tweets;
 
                                     var send1 = new Array();
 
@@ -488,9 +488,9 @@ app.post("/search", function(req, res) {
                     });
                 } else {
                     //console.log("MY USERNAME IS", req.cookies.key);
-                    db.collection("users").findOne({username: sessionkey, verified: "yes"}, (err, user) => {
+                    db.collection("users").find({username: sessionkey, verified: "yes"}, (err, user) => {
                         if (user) {
-                            var follow = user.following;
+                            var follow = user[0].following;
                             //console.log("FOLLOWING", follow);
                             db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
                                     //console.log("Number returned from toArray", val.length);
@@ -525,9 +525,9 @@ app.post("/search", function(req, res) {
                 //console.log("FOLLOWING IS FALSE");
 
                 if (username) {
-                    db.collection("users").findOne({"username": username, verified: "yes"}, (err, user) => {
+                    db.collection("users").find({"username": username, verified: "yes"}, (err, user) => {
                         if (user) {
-                            var tweets = user.tweets;
+                            var tweets = user[0].tweets;
                             var send3 = new Array();
                             var count3 = 0;
                             for (var j = 0; j < tweets.length && count3 < limit; j++) {
