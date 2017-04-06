@@ -424,8 +424,10 @@ app.post("/search", function(req, res) {
 		timestamp = parseInt(req.body.timestamp) * 1000;
 	if (req.body.q)
 		query = req.body.q;
-	if (!req.body.following)
-		following = req.body.following;
+    if (req.body.following == 'false')
+        following = false;
+	// if (req.body.following)
+	// 	following = req.body.following;
 
     query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
 
