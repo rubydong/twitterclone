@@ -5,12 +5,26 @@
         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-       
+        <style>
+            #tweetButton {
+                margin-top: 10px;
+                border:1px solid #D4D4D4; 
+                border-radius: 5px; 
+                background-color: #FFF;
+                color: #798AA8 !important;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            #tweetButton:hover {
+                color: #999EA8 !important;
+                background-color: #FFF !important;
+            }
+        </style>
     </head>
     
     <body>
         <div class="navigation">
-            <a href="/logout">LOGOUT</a>
+            <a href="/logout" id="logoutLink">LOGOUT</a>
             <a href="/follow">FOLLOW</a>
             <a href="/search">SEARCH</a>
             <a href="" id="profileClick">PROFILE</a>
@@ -20,7 +34,7 @@
         
         
         <div class="everything">
-            
+        
             <div id="userInfo">
 
                 <img src="img/cat.jpg" width="50px"> <br>
@@ -28,13 +42,16 @@
             </div>
 
             <div id="tweetsInfo">
-
+                
                 <form method="POST" action="/additem" id="additemForm">
                     <p><p>
                     <div class="formContent">
                     <textarea name="content" id="content"></textarea> <br>
-                        TOTAL WORD COUNT: <span id="count">0</span> <br>
-                    <button type="submit" class="btn btn-default" style="margin-top: 10px">Tweet</button>   
+                        <span style="text-transform: uppercase;font-size: 11px;">
+                            TOTAL WORD COUNT: <span id="count">0</span> 
+                         <br>
+                    <button type="submit" id="tweetButton">Tweet</button>   
+                            </span>
                     </div>
                 </form>
 
@@ -46,6 +63,7 @@
 
             $(document).ready(function () {
                 
+                
                 $.ajax ({
                     "url": "/search",
                     "type": "POST"
@@ -54,12 +72,10 @@
                         var tweetsArr = data.items;
                         for (var i = 0; i < tweetsArr.length; i++) {
                             var timestamp = tweetsArr[i].timestamp;
-                            //var date = new Date (timestamp);
-                            //var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+                            var date = new Date (timestamp);
+                            var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
                             
-//                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " " + date + " unix [" + timestamp + "]<br>" + tweetsArr[i].content + "</div>");
-                            $("#newsfeed").prepend("<div class='tweet'> Id #" + tweetsArr[i].id + " @" + tweetsArr[i].username + " Timestamp: " + timestamp + "<br>" + tweetsArr[i].content + "</div>");
-                            
+                            $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + tweetsArr[i].username + " Id #" + tweetsArr[i].id + "   " + date + "</div>" + tweetsArr[i].content + "</div>");
                         }
                     } else {
                         window.location = "/login";
@@ -80,6 +96,13 @@
                     } else {
                          //alert(JSON.stringify(data.error));
                     }
+                });
+                
+                $("#logoutLink").click(function(event) {
+                    $.ajax ({
+                        "url": "/logout",
+                        "type": "GET"
+                    });
                 });
                 
                  $("#additemForm").submit(function (event) {
@@ -106,8 +129,11 @@
                                 "contentType": "application/json; charset=utf-8"
                             }).done(function(d) {
                                 if (d.status == "OK") {
-                                    //alert("now the info is " + JSON.stringify(d.item));
-                                    $("#newsfeed").prepend("<div class='tweet'> Id #" + d.item.id + " @" + d.item.username + " Timestamp: " + d.item.timestamp + "<br>" +  d.item.content + "</div>");
+                                    var timestamp = d.item.timestamp;
+                                    var date = new Date (timestamp);
+                                    var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+
+                                    $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
                                 }
                             });                         
                         }

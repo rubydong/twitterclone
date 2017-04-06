@@ -73,7 +73,8 @@ button:hover, button:active{ /*#26A69A*/
     float: left;
     position: relative;
     margin-top: 10px;
-
+    text-transform: uppercase;
+    font-size: 12px;
 }
 
 #tweetsInfo {
@@ -91,12 +92,25 @@ textarea {
 textarea:focus {outline:0;}
 
 .tweet{
-    text-align: center;
+    text-align: left;
     width: 100%; 
-    padding: 7px;
+    padding: 5px;
     margin: 0 auto;
     margin-top: 10px;
+    min-height: 70px;
+}
+.tweetsubinfo {
+/*
+    text-transform: uppercase;
+    font-size: 11px;
+*/
+    padding-left: 5px;
+}
 
+.tweet img {
+    margin: 2px 10px 0px 5px;
+    content: url("img/user.png");
+    width: 50px;
 }
 
 /*border + background color*/
@@ -142,7 +156,6 @@ textarea:focus {outline:0;}
 .nav-wrapper a {
     color: #FFF !important;   
 }
-
 
 .delete {
     color: #79A7BA;
