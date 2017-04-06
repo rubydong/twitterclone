@@ -76,8 +76,7 @@ app.post("/adduser", function (req, res) {
     
     if (e_username && e_password && e_email) {
         //check if username/email has been taken already
-        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]},
-                                       {conversations: 1}, (err, doc) => {
+        db.collection("users").findOne({$or: [{username: e_username},{email: e_email}]},(err, doc) => {
             if (doc) {
                 res.json({status: "ERROR", error: "USERNAME/EMAIL EXISTS"});
             } else {
@@ -306,7 +305,7 @@ app.delete("/item/:id", function (request, response) {
     console.log("DELETING", id);
 	db.collection("sessions").findOne({"sessionkey": request.cookies.key},{"sessionkey": 1},(error, doc) => {
         if (doc) {
-            db.collection("users").update({"username": request.cookies.key},
+            db.collection("users").update({"username": request.cookies.key, "verified": "yes"},
                 {
                   $pull: {"tweets": { "id": parseInt(id)}} 
                 }, (error, result) => {
@@ -314,7 +313,7 @@ app.delete("/item/:id", function (request, response) {
                         console.error(new Error("ERROR UPDATING TWEET"));
                         response.json({status: "ERROR" });
                     } else {
-                        db.collection("tweets").findOne( {"id": parseInt(request.params.id) }, (error, document) => {
+                        db.collection("tweets").findOne( {"id": parseInt(id) }, (error, document) => {
                             if (error) {
                                 console.error(new Error("ERROR FINDING TWEET WITH ID"));
                                 response.json({status: "ERROR"});
