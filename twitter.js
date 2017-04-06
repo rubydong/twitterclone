@@ -676,7 +676,7 @@ app.post("/follow", function (request, response) {
     var sessionkey = request.cookies.key;
     var followbool = true;
 
-    if(request.body.followbool != null)
+    if(request.body.follow != null)
         followbool = request.body.follow;
 
     console.log("BOOL IS:", request.body.follow);
