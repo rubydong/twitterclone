@@ -480,10 +480,12 @@ app.post("/search", function(req, res) {
                                 if (followinguser) {
                                     var tweets = followinguser.tweets;
 
+                                    var send1 = new Array();
+
                                     for (var i = 0; i < tweets.length && limitCounter < limit; i++) {
                                         if ( (tweets[i].content.match(query) != null) && 
                                              (tweets[i].timestamp <= timestamp)) {
-                                            tweetsArr.push({
+                                            send1.push({
                                                 id: tweets[i].id,
                                                 username: tweets[i].username,
                                                 content: tweets[i].content,
@@ -492,8 +494,8 @@ app.post("/search", function(req, res) {
                                             limitCounter++;
                                         }
                                     }
-                                    console.log("RETURNING", tweetsArr.length, "TWEETS");
-                                    res.json({status: "OK", items: tweetsArr});
+                                    console.log("RETURNING", send1.length, "TWEETS");
+                                    res.json({status: "OK", items: send1});
 
                                 } else {
                                     console.log(username, "WAS NOT FOUND");
@@ -514,14 +516,14 @@ app.post("/search", function(req, res) {
                             db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
                                     console.log("Number returned from toArray", val.length);
                                     // var tweets = val.tweets;
-
+                                    var send2 = new Array();
                                     for (var i = 0; i < val.length && limitCounter < limit; i++) {
                                         var tweets = val[i].tweets;
 
                                         for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
                                             if ( (tweets[j].content.match(query) != null) && 
                                                  (tweets[j].timestamp <= timestamp)) {
-                                                tweetsArr.push({
+                                                send2.push({
                                                     id: tweets[j].id,
                                                     username: tweets[j].username,
                                                     content: tweets[j].content,
@@ -532,7 +534,7 @@ app.post("/search", function(req, res) {
                                         }
                                     }
 
-                                    res.json({status: "OK", items: tweetsArr});
+                                    res.json({status: "OK", items: send2});
                             });
                         } else {
                             res.json({status: "ERROR",error: "USER IS NOT FOUND"});
@@ -546,11 +548,11 @@ app.post("/search", function(req, res) {
                     db.collection("users").findOne({"username": username, verified: "yes"}, (err, user) => {
                         if (user) {
                             var tweets = user.tweets;
-
+                            var send3 = new Array();
                             for (var j = 0; j < tweets.length && limitCounter < limit; j++) {
                                 if ( (tweets[j].content.match(query) != null) && 
                                      (tweets[j].timestamp <= timestamp)) {
-                                    tweetsArr.push({
+                                    send3.push({
                                         id: tweets[j].id,
                                         username: tweets[j].username,
                                         content: tweets[j].content,
@@ -561,8 +563,8 @@ app.post("/search", function(req, res) {
                             }
 
                             console.log("FINISHED USERNAME IS", username);
-                            console.log(tweetsArr);
-                            res.json({status: "OK", items: tweetsArr});
+                            console.log(send3);
+                            res.json({status: "OK", items: send3});
                         } else {   
                             console.log("FINISHED USERNAME WAS NOT FOUND AT", username);
                             res.json({status: "OK", items: []});
@@ -578,9 +580,9 @@ app.post("/search", function(req, res) {
                          ]
                      }).limit(limit).toArray((err, val) => {
                             console.log("Number returned from toArray", val.length);
-
+                            var send4 = new Array();
                             for (var i = 0; i < val.length && limitCounter < limit; i++) {
-                                    tweetsArr.push({
+                                    send4.push({
                                         id: val[i].id,
                                         username: val[i].username,
                                         content: val[i].content,
@@ -589,10 +591,10 @@ app.post("/search", function(req, res) {
                                     limitCounter++;
                                 
                             }
-                            console.log("Number of tweets", tweetsArr.length);
+                            console.log("Number of tweets", send4.length);
                             if (req.body.query != null)
-                                console.log(tweetsArr);
-                            res.json({status: "OK",items: tweetsArr});
+                                console.log(send4);
+                            res.json({status: "OK",items: send4});
                      });
                 }
             }
