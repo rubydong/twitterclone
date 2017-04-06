@@ -436,7 +436,6 @@ app.post("/search", function(req, res) {
                                             count1++;
                                         }
                                     }
-                                    console.log("RETURNING", send1.length, "TWEETS");
                                     res.json({status: "OK", items: send1});
 
                                 } else {
@@ -453,8 +452,6 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var follow = user.following;
                             db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
-                                    console.log("Number returned from toArray", val.length);
-                                    // var tweets = val.tweets;
                                     var send2 = new Array();
                                     var count2 = 0;
                                     for (var i = 0; i < val.length && count2 < limit; i++) {
