@@ -432,6 +432,7 @@ app.post("/search", function(req, res) {
 	// 	following = req.body.following;
 
     query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
+    console.log("USERNAME IS", username);
 
 	db.collection("sessions").findOne({"sessionkey": req.cookies.key},{"sessionkey": 1}, (error, doc) => {
 		if (doc) {
@@ -556,7 +557,7 @@ app.post("/search", function(req, res) {
                                 }
                             }
                             console.log("Number of tweets", tweetsArr.length);
-                            console.log(tweetsArr);
+                            // console.log(tweetsArr);
                             res.json({status: "OK",items: tweetsArr});
                      });
                 }
