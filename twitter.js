@@ -532,8 +532,7 @@ app.post("/search", function(req, res) {
                     });
 
                 } else {
-                    query = ".*(" + query.trim().replace(/\s+/, "|")+").*";
-                    console.log("QUERY IS", query);
+                    query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
                      db.collection("tweets").find(
                      {$and: [
                          {content: {$regex: query }},
