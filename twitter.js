@@ -238,7 +238,10 @@ app.post("/additem", function (req, res) {
                         console.log(error);
                         res.json({status: "ERROR" });
                     } else {
-                        console.log(result);
+                        // console.log(result);
+                        var tweets = result.tweets;
+                        console.log(tweets);
+
                         var documentA = {
                             "id": result.tweets[result.tweets.length].id,   
                             "username": sessionkey,
