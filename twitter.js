@@ -576,16 +576,18 @@ app.post("/search", function(req, res) {
                      }).limit(limit).toArray((err, val) => {
                             console.log("Number returned from toArray", val.length);
 
-                            for (var i = 0; i < val.length; i++) {
-                                if (limitCounter < limit) {
-                                    tweetsArr.push(val[i]);
+                            for (var i = 0; i < val.length && limitCounter < limit; i++) {
+                                    tweetsArr.push(
+                                        id: val[i].id,
+                                        username: val[i].username,
+                                        content: val[i].content,
+                                        timestamp: val[i].timestamp
+                                    );
                                     limitCounter++;
-                                } else {
-                                    break;
-                                }
+                                
                             }
                             console.log("Number of tweets", tweetsArr.length);
-                            console.log(tweetsArr);
+                            // console.log(tweetsArr);
                             res.json({status: "OK",items: tweetsArr});
                      });
                 }
