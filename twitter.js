@@ -1,47 +1,132 @@
 var express = require("express");
 var path = require("path");
 var bodyParser = require("body-parser");
-var nodemailer = require("nodemailer");
 var cookieParser = require("cookie-parser");
-var MongoClient = require("mongodb").MongoClient;
-var ObjectID = require("mongodb").ObjectID;
+var nodeMailer = require("nodemailer");
 
 var app = express();
-
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
-app.use(express.static(__dirname));
 app.use(cookieParser());
-app.set("trust proxy", 1); //Trust first proxy
+app.set("trust proxy", 1); //Trust first proxy for cookie
 
-/*
-	TRY TO MODULARIZE THIS GIANT CHUNK
-
-
-
-*/
-
-
-
-MongoClient.connect("mongodb://localhost:27017/twitter", (err,database) => {
-//MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
-//MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
-//MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
-    if (err) {
-        return console.error(new Error("Attempting to connect to db:", error));
-    } else {
-        db = database;
-        console.log("Connected to MongoDB");
+//Set up MongoDB
+var db;
+var MongoClient = require("mongodb").MongoClient;
+var ObjectID = require("mongodb").ObjectID;
+MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
+    if (error) {
+        return console.error(error);
     }
+    db = database;
+    db.createIndex("users", {username: 1, email: 1, password: 1, verified: 1, following: 1}, {background: true}, function () {
+        db.createIndex("users", {username: 1}, {background: true}, function () {
+            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
+                db.createIndex("sessions", {key: 1}, {background: true}, function () {
+                    console.log("Connected to MongoDB with indexes created");
+                });
+            });
+        });
+    });
 });
 
-//front end
+//Set up Memcached
+var Memcached = require("memcached");
+var memcached = new Memcached("localhost:11211");
+
+//Front-end
 app.get("/adduser", function (request, response) {
     response.sendFile(path.join(__dirname + "/adduser.html"));
 });
 
+//Grading script
+app.post("/adduser", function (request, response) {
+    var username = request.body.username;
+    var email = request.body.email;
+    var password = request.body.password;
+
+    if (username && email && password) {
+        db.collection("users").findOne({$or: [{username: username}, {email: email}]}, function (error, document) {
+            if (error) {
+                response.json({status: "error", error: error.toString()});
+            } else if (document) {
+                response.json({status: "error", error: "USERNAME/EMAIL ALREADY EXISTS"});
+            } else {
+                var newUser = {
+                    username: username,
+                    email: email,
+                    password: password,
+                    verified: (Math.random() + 1).toString(36).substring(7),
+                    tweets: [],
+                    followers: [],
+                    following: []
+                };
+                db.collection("users").insertOne(newUser, function (error) {
+                    if (error) {
+                        response.json({status: "error", error: error.toString()});
+                    } else {
+                        response.json({status: "OK"});
+                    }
+                });
+            }
+        });
+    } else {
+        response.json({status: "error", error: "PLEASE FILL IN ALL FIELDS"});
+    }
+});
+
+//Front-end
+app.get("/login", function (request, response) {
+    response.sendFile(path.join(__dirname + "/login.html"));
+});
+
+//Grading script
+app.post("/login", function (request, response) {
+    var username = request.body.username;
+    var password = request.body.password;
+
+    if (username && password) {
+        db.collection("users").findOne({username: username, password: password, verified: "yes"}, function (error, document) {
+            if (error) {
+                response.json({status: "error", error: error.toString()});
+            } else if (document) {
+                db.collection("sessions").insertOne({key: username}, function (error) {
+                    if (error) {
+                        response.json({status: "error", error: error.toString()});
+                    } else {
+                        response.cookie("key", username); //Communicates with key in sessions collection
+                        response.json({status: "OK"});
+                    }
+                });
+            } else {
+                response.json({status: "error", error: "USERNAME/PASSWORD COMBINATION DOES NOT EXIST OR IS NOT VERIFIED"});
+            }
+        });
+    } else {
+        response.json({status: "error", error: "PLEASE FILL IN ALL FIELDS"});
+    }
+});
+
+//Front-end
+app.get("/logout", function (request, response) {
+    db.collection("sessions").remove({key: request.cookies.key});
+    response.clearCookie("key");
+    response.redirect("/login");
+});
+
+//Grading script
+app.post("/logout", function (request, response) {
+    db.collection("sessions").remove({key: request.cookies.key}, function (error) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else {
+            response.clearCookie("key");
+            response.json({status: "OK"});
+        }
+    });
+});
+
 function sendEmail(email, key) {
-    
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -50,14 +135,13 @@ function sendEmail(email, key) {
         }
     });
     let mailOptions = {
-        from: '"TwitterClone" <emailtransporter123@gmail.com>', 
-        to: email, 
-        subject: 'Email confirmation for twitter', 
+        from: '"TwitterClone" <emailtransporter123@gmail.com>',
+        to: email,
+        subject: 'Email confirmation for Twitter',
         text: '',
-        html: "your key is " + key
-        //html: 'http://130.245.168.86/verify?email=' + email + '&key=' + key
+        html: 'Your key is ' + key
     };
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, function (error) {
         if (error) {
             return console.log('Bad email');
         }
@@ -65,67 +149,32 @@ function sendEmail(email, key) {
     });
 }
 
-
-//grading
-app.post("/adduser", function (req, res) {
-    var e_username = req.body.username;
-    var e_password = req.body.password;
-    var e_email = req.body.email;    
-    var e_emailkey = (Math.random() + 1).toString(36).substring(7);
-    
-    if (e_username && e_password && e_email) {
-        //check if username/email has been taken already
-        var now = Date.now();
-        var newuser = {
-            "username": e_username,
-            "password": e_password,
-            "email": e_email,
-            "verified": e_emailkey, 
-            "tweets": [],
-            "followers": [],
-            "following": []
-        };
-        db.collection("users").update({username: e_username, email: e_email},
-            {$set: {updatedAt: now}, 
-              $setOnInsert: {createdAt: now,
-                             password: e_password,
-                             verified: e_emailkey,
-                             tweets: [],
-                            followers: [],
-                            following: []}}, {upsert:true}, (err,doc) => {
-                res.json({status:"OK"});
-            });
-        sendEmail(e_email, e_emailkey);
-    } else {
-        res.json({status: "error", error: "PLEASE FILL IN ALL FIELDS"});
-    }
-});
-        
-//front end
-app.get("/login", function (request, response) {            
-    response.sendFile(path.join(__dirname + "/login.html"));
+//Front-end
+app.get("/verify", function (request, response) {
+    response.sendFile(path.join(__dirname + "/verify.html"));
 });
 
-//grading
-app.post("/login", function (request, response) {
-    
-    var username = request.body.username;
-    var password = request.body.password;
-    
-    if (username && password) {
-		db.collection("users").findOne({"username": username,"password": password, verified: "yes"}, {"name": 1}, (error, doc) => {
-            if (doc) {
-				db.collection("sessions").insert({"sessionkey": username},{w: 1}, (err,res) => {
-					if (err) {
-						console.error(new Error("ERROR attempting login:", err));
-					} else {
-						response.cookie('key', username); // used to communicate with sessionkey in db
-						response.json({status: "OK"});
-					}
-				});
+//Grading script
+app.post("/verify", function (request, response) {
+    var email = request.body.email;
+    var key = request.body.key;
+
+    if (email && key) {
+        db.collection("users").findOne({email: email}, function (error, document) {
+            if (error) {
+                response.json({status: "error", error: error.toString()});
+            } else if (document) {
+                if (key === document.verified || key === "abracadabra") {
+                    db.collection("users").updateOne({email: email}, {$set: {verified: "yes"}}, function (error) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else {
+                            response.json({status: "OK"});
+                        }
+                    });
+                }
             } else {
-				console.error(new Error("LOGIN FAILED with",username,password));
-                response.json({status:"error", error: "INVALID LOGIN"});
+                response.json({status: "error", error: "EMAIL NOT FOUND"});
             }
         });
     } else {
@@ -133,603 +182,625 @@ app.post("/login", function (request, response) {
     }
 });
 
-//front end
-app.get("/logout", function(request, response) {
-    request.session = null;
-	var sessionkey = request.cookies.key;
-		db.collection("sessions").remove({"sessionkey": sessionkey},1);
-		response.clearCookie("key");	
-    response.redirect('/login');
-});
+//Grading script
+app.post("/additem", function (request, response) {
+    var content = request.body.content;
+    var sessionKey = request.cookies.key;
 
-//grading
-app.post("/logout", function (request, response) {
-        var sessionkey = request.cookies.key;
-
-		db.collection("sessions").remove({"sessionkey": sessionkey}, {w:1}, (err) => {
-            if (err) {
-                console.error(new Error("ERROR deleting session key"));
-                response.json({status: "error"});
-            } else {
-                response.clearCookie("key");
-                response.json({status: "OK"});
-            }
-		});
-});
-
-//front end
-app.get("/verify", function (request, response) {
-    response.sendFile(path.join(__dirname + "/verify.html"));
-});
-
-//grading
-app.post("/verify", function (req, res) {
-    var e_email = req.body.email;
-    var e_key = req.body.key;
-    var e_emailkey = "";
-
-    if (e_email && e_key) {
-        db.collection("users").findOne({email: e_email}, (err, doc) => {
-            if (err) { 
-                console.error(new Error("DID NOT FIND USER:", e_email, err));
-                res.json({status: "error"});
-            } else if (doc) {
-                var new_emailkey = doc.verified;
-                if (e_key == new_emailkey || e_key == "abracadabra") {
-                    db.collection("users").update({email: e_email},{$set: {verified: "yes" }},
-                        {w:1}, (err,result) => {
-                            if (err) {
-                                console.error(new Error("VERIFY FAILED", err))
-                                res.json({status: "error"});
-                            } else {
-                                res.json({status:"OK"});
-                            }
-                        });
-                } else { 
-                    res.json({status: "error", error: "INVALID KEY PLEASE TRY AGAIN"});
-                }
-            } else {
-                res.json({status: "error", error: "No email found"});
-            }
-        });
-    } else {
-        res.json({status: "error", error: "PLEASE FILL IN ALL FIELDS"});
-    }
-});
-
-//grading
-app.post("/additem", function (req, res) {
-    
-    var content = req.body.content;
-    var timestamp = new Date().getTime();
-    var sessionkey = req.cookies.key;
-
-	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
-		if (doc) {
+    db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
             var id = new ObjectID().toHexString();
-
-            db.collection("users").update({username: sessionkey},
-                {
-                  $push: {
-                        "tweets": {
-                              "id": id,   
-                              "username": sessionkey,
-                              "content": content,
-                              "timestamp": timestamp
-                        }
-                    } 
-                }, {w:1}, (error, result) => {
-                    if (error) {
-                        res.json({status: "error", error: "ERROR INSERTING TWEET TO USER"});
-                    } else {
-                        var documentA = {
-                            "id": id,   
-                            "username": sessionkey,
-                            "content": content,
-                            "timestamp": timestamp
-                        };
-                        
-                        db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
-    							if (error) {
-    								res.json({status: "error", error: "ERROR INSERTING TWEET TO DB"});
-    							} else { 
-    								res.json({status: "OK", id: id});
-    							}
-    					});
-                    }
-            });
-        } else {
-            res.json({status: "error", error: "USER IS NOT LOGGED IN"});
-        }
-    });
-});
-
-//grading
-app.get("/item/:id", function (request, response) {
-
-    var id = request.params.id;
-    var sessionkey = request.cookies.key;
-    db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
-        if (doc) {
-            db.collection("tweets").findOne({"id": id}, (error, documentA) => {
+            var tweet = {
+                _id: id,
+                username: sessionKey,
+                content: content,
+                timestamp: Date.now()
+            };
+            db.collection("users").updateOne({username: sessionKey}, {$push: {tweets: tweet}}, function (error) {
                 if (error) {
-                    response.json({status: "error", error: "ERROR SEARCHING FOR TWEET WITH ID"});
-                } else if (documentA) {
-                    response.json(
-                        {
-                            status: "OK",
-                            item: {
-                                id: documentA.id,
-                                username: documentA.username,
-                                content: documentA.content,
-                                timestamp: documentA.timestamp
-                            }
-                        });
+                    response.json({status: "error", error: error.toString()});
                 } else {
-                    response.json({status: "error", error: "NO TWEET FOUND WITH ID"});
+                    db.collection("tweets").insertOne(tweet, function (error) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else {
+                            response.json({status: "OK", id: id});
+                        }
+                    });
                 }
             });
         } else {
-            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+            response.json({status: "error", error: "NOT LOGGED IN"});
         }
     });
 });
-//});
 
-//grading
-app.delete("/item/:id", function (request, response) {
-    var id = request.params.id;
-    var sessionkey = request.cookies.key;
-
-	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1},(error, doc) => {
-        if (doc) {
-            db.collection("users").update({"username": sessionkey, "verified": "yes"},
-                {
-                  $pull: {"tweets": { "id": id}} 
-                }, {w:1}, (error, result) => {
-                    if (error) {
-                        response.json({status: "error", error: "ERROR UPDATING TWEET" });
-                    } else {
-
-                        db.collection("tweets").findOne( {"id": id }, (error, document) => {
-                            if (error) {
-                                response.json({status: "error", error: "ERROR FINDING TWEET WITH ID"});
-                            } else if (document) {
-                                if (document.username == sessionkey) {
-                                    db.collection("tweets").remove({"id": id}, {w:1}, (error, result) => {
-                                        if (error) {
-                                            console.error(new Error("ERROR REMOVING TWEET"));
-                                            response.json({status:"error"});
-                                        } else {
-                                            response.json({status: "OK"});
-                                        }
-                                    });
-                                } else {
-                                    response.json({status: "error", error: "DID NOT FIND TWEET WITH ID"});
-                                }
-                            } else {
-                                response.json({status: "error", error: "DID NOT FIND TWEET WITH ID"});
-                            }
-                        });
-
-                    }
-            });
-        } else {
-            console.error("NO SESSION FOUND");
-            response.json({status: "error"});
-        }
-	});
-});
-
-//front end
+//Front-end
 app.post("/item", function (request, response) {
     var id = request.body.itemId;
-		if (request.cookies.key != null) {
-        db.collection("tweets").findOne( { "id": id },function (error, document) {
-			if (error) {  response.json( { status: "error", error: "ERROR LOOKING FOR THIS TWEET IN DB" }); }
-			
-            else if (document) {
-                response.json({
-                    status: "OK",
-                    item: {
-                        id: document.id,
-                        username: document.username,
-                        content: document.content,
-                        timestamp: document.timestamp
-                    }
-                });
+
+    if (request.cookies.key) {
+        db.collection("tweets").findOne({_id: id}, function (error, document) {
+            if (error) {
+                response.json({status: "error", error: error.toString()});
+            } else if (document) {
+                var tweet = {
+                    id: document._id,
+                    username: document.username,
+                    content: document.content,
+                    timestamp: document.timestamp
+                };
+                response.json({status: "OK", item: tweet});
             } else {
-                response.json( { status: "error", error: "THIS IS AN INVALID ID" });
+                response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
             }
         });
     } else {
-        response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        response.json({status: "error", error: "NOT LOGGED IN"});
     }
-	//});
 });
 
-//front end
-app.get("/search", function(request, response) {   
-   response.sendFile(path.join(__dirname + "/search.html")); 
-});
+//Grading script
+app.get("/item/:id", function (request, response) {
+    var id = request.params.id;
 
-//front end to get everyone's profile
-app.get("/profile/:username", function (request, response) {
-    response.sendFile(path.join(__dirname + "/profile.html"));
-});
-
-//front end to determine who the user is in html/js
-app.post("/whoami", function (request, response) {
-    if (request.cookies.key)
-        response.json ({status:"OK", username: request.cookies.key});
-    else 
-        response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
-});
-
-
-//grading
-function checkConditions(tweets, query, timestamp) {
-	if (tweets.content.indexOf(query) == -1)
-		return false;
-	else if (tweets.timestamp > timestamp)
-		return false;
-	else
-		return true;
-}
-
-//grading
-app.post("/search", function(req, res) {
-    console.log(req.body);
-
-	var timestamp = new Date().getTime();
-	var limit = 25;
-	var query = '';
-	var username = req.body.username;
-    var sessionkey = req.cookies.key;
-	var following = true;
-    var limitCounter = 0;
-
-	if (req.body.limit) {
-		limit = parseInt(req.body.limit);
-        limit = limit > 99 ? 99 : limit;
-	}
-	if (req.body.timestamp)
-		timestamp = parseInt(req.body.timestamp) * 1000;
-	if (req.body.q)
-		query = req.body.q;
-   
-    
-    if ((req.body.following || req.body.following == false) && req.body.following.length != 0) {
-        following = req.body.following;
-    } 
-	
-    query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
-    
-	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1}, (error, doc) => {
-		if (doc) {
-			tweetsArr = new Array();
-            if (following == 'true' || following == true) {
-                console.log("FOLLOWING IS TRUE");
-
-                if (username) {
-
-                    db.collection("users").findOne({"username": sessionkey, verified: "yes", "following": { $in: [username] }}, (error, loggeduser) => {
-                        if (loggeduser) {
-
-                            db.collection("users").findOne({"username": username, verified: "yes"}, (error, followinguser) => {
-                                if (followinguser) {
-                                    var tweets = followinguser.tweets;
-
-                                    var send1 = new Array();
-
-                                    var count1 = 0;
-
-                                    for (var i = 0; i < tweets.length && count1 < limit; i++) {
-                                        if ( (tweets[i].content.match(query) != null) && 
-                                             (tweets[i].timestamp <= timestamp)) {
-                                            send1.push({
-                                                id: tweets[i].id,
-                                                username: tweets[i].username,
-                                                content: tweets[i].content,
-                                                timestamp: tweets[i].timestamp
-                                            });
-                                            count1++;
-                                        }
-                                    }
-                                    res.json({status: "OK", items: send1});
-
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(id, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.json(data);
+                } else {
+                    db.collection("tweets").findOne({_id: id}, function (error, doc) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else if (doc) {
+                            var tweet = {
+                                id: doc._id,
+                                username: doc.username,
+                                content: doc.content,
+                                timestamp: doc.timestamp
+                            };
+                            var data = {status: "OK", item: tweet};
+                            memcached.set(id, data, 0, function (error) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
                                 } else {
-                                    res.json({status: "error", error: "USER WAS NOT FOUND"});
+                                    response.json(data);
                                 }
                             });
                         } else {
-
-                            res.json({status: "OK", items: [] });
-                        }
-                    });
-                } else {
-                    db.collection("users").findOne({username: sessionkey, verified: "yes"}, (err, user) => {
-                        if (user) {
-                            var follow = user.following;
-                            db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
-                                    var send2 = new Array();
-                                    var count2 = 0;
-                                    for (var i = 0; i < val.length && count2 < limit; i++) {
-                                        var tweets = val[i].tweets;
-
-                                        for (var j = 0; j < tweets.length && count2 < limit; j++) {
-                                            if ( (tweets[j].content.match(query) != null) && 
-                                                 (tweets[j].timestamp <= timestamp)) {
-                                                send2.push({
-                                                    id: tweets[j].id,
-                                                    username: tweets[j].username,
-                                                    content: tweets[j].content,
-                                                    timestamp: tweets[j].timestamp
-                                                });
-                                                count2++;
-                                            }
-                                        }
-                                    }
-
-                                    res.json({status: "OK", items: send2});
-                            });
-                        } else {
-                            res.json({status: "error",error: "USER IS NOT FOUND"});
+                            response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
                         }
                     });
                 }
-            } else {
-                console.log("FOLLOWING IS FALSE");
-
-                if (username) {
-                    db.collection("users").findOne({"username": username, verified: "yes"}, (err, user) => {
-                        if (user) {
-                            var tweets = user.tweets;
-                            var send3 = new Array();
-                            var count3 = 0;
-                            for (var j = 0; j < tweets.length && count3 < limit; j++) {
-                                if ( (tweets[j].content.match(query) != null) && 
-                                     (tweets[j].timestamp <= timestamp)) {
-                                    send3.push({
-                                        id: tweets[j].id,
-                                        username: tweets[j].username,
-                                        content: tweets[j].content,
-                                        timestamp: tweets[j].timestamp
-                                    });
-                                    count3++;
-                                }
-                            }
-
-                            res.json({status: "OK", items: send3});
-                        } else {   
-
-                            res.json({status: "OK", items: []});
-                        }
-                    });
-
-                } else {
-                     db.collection("tweets").find(
-                     {$and: [
-                         {content: {$regex: query }},
-                         {timestamp: {$lte: timestamp}}
-                         ]
-                     }).limit(limit).toArray((err, val) => {
-                            var send4 = new Array();
-                            var count4 = 0;
-                            for (var i = 0; i < val.length && count4 < limit; i++) {
-                                    send4.push({
-                                        id: val[i].id,
-                                        username: val[i].username,
-                                        content: val[i].content,
-                                        timestamp: val[i].timestamp
-                                    });
-                                    count4++;
-                                
-                            }
-                            res.json({status: "OK",items: send4});
-                     });
-                }
-            }
-		} else {
-			res.json({status: "error",error: "USER IS NOT LOGGED IN"});
-		}
-	});
-});
-
-//front end
-app.get("/follow", function (request, response) {
-    response.sendFile(path.join(__dirname + "/follow.html")); 
-});
-
-//grading
-app.post("/follow", function (request, response) {
-    var sessionkey = request.cookies.key;
-    var followbool = true;
-
-    if(request.body.follow != null)
-        followbool = request.body.follow;
-    
-	db.collection("sessions").findOne({"sessionkey":sessionkey},{"sessionkey": 1}, (error, doc) => {
-		if (doc) { 
-            var currentUser = sessionkey;
-            var otherUser = request.body.username; //other user to folllow or unfollow
-
-            if (followbool == 'true' || followbool == true) {
-                db.collection("users").findOne({"username": otherUser, verified: "yes"}, (error, document) => {  
-                    if (error) {
-                        response.json({status: "error", error: error});
-                    } else if (document == null) {
-                        response.json({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO FOLLOW DOES NOT EXIST"});
-                    } else {
-                        db.collection("users").update({"username": otherUser, verified: "yes"},{ $addToSet: {"followers": currentUser}},
-                            (err, result) => {
-                                if (err) {
-                                    response.json({status: "error", error: err});
-                                } else {
-                                    db.collection("users").update({"username": currentUser, verified: "yes"},{$addToSet: {"following":otherUser}},
-                                    (err, result) => {
-                                        if (err) {
-                                            response.json({status: "error", error: err});
-                                        } else {
-                                            
-                                            response.json({status: "OK"});  
-                                        }
-                                    }); 
-                                }
-                        });
-                    }
-                });
-            } else {
-                db.collection("users").findOne( {"username": otherUser, verified: "yes"}, (error, document) => {  
-                    if (error) {
-                        response.json({status: "error", error: error});
-                    } else if (document == null) {
-                        response.json ({status: "error", error: "THE PERSON THAT YOU ARE TRYING TO UNFOLLOW DOES NOT EXIST"});
-                    } else {
-                        db.collection("users").update({"username": otherUser, verified: "yes"},{ $pull: {"followers": currentUser}},
-                        (err, result) => {
-                            if (err) {
-                                response.json({status: "error", error: err});
-                            } else {
-                                db.collection("users").update({"username": currentUser, verified: "yes"},{ $pull: {"following": otherUser}},
-                                (err,result) => {
-                                    if (err) {
-                                        response.json({status: "error", error: err});
-                                    } else {
-                                        response.json({status: "OK"});  
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        } else {
-            response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
-        }
-	});
-});
-                    
-//grading
-app.get("/user/:username", function (request, response) {
-    
-    var username = request.params.username;
-    var sessionkey = request.cookies.key;
-
-    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
-        if (doc) {
-            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
-                if (document) {
-                            var following = document.following;
-                            var followingCount = Object.keys(following).length;
-                            
-                            var followers = document.followers;
-                            var followersCount = Object.keys(followers).length;
-                            
-                            response.json({
-                                status: "OK", 
-                                user: {
-                                    email: document.email,
-                                    followers: followersCount,
-                                    following: followingCount
-                                }
-                            });
-                } else {
-                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
-                }
-            }); 
-        } else {
-            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
-        }
-    });
-});
-
-//front end
-app.post("/user", function (request, response) {
-    
-    db.collection("sessions").findOne( {"sessionkey": request.cookies.key}, {"sessionkey": 1}, function (error, doc) {
-        if (doc) { 
-            db.collection("users").findOne({"username": request.cookies.key, verified: "yes"}, function (error, document) {
-
-                var following = document.following;
-                var followingCount = Object.keys(following).length;
-
-                var followers = document.followers;
-                var followersCount = Object.keys(followers).length;
-
-                response.json({
-                    status: "OK", 
-                    user: {
-                        username: request.cookies.key,
-                        email: document.email,
-                        followers: followersCount,
-                        following: followingCount
-                    }
-                });
             });
         } else {
-            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+            response.json({status: "error", error: "NOT LOGGED IN"});
         }
     });
 });
 
-//grading
-app.get("/user/:username/followers", function (request, response) {
+//Grading script
+app.delete("/item/:id", function (request, response) {
+    var id = request.params.id;
+    var sessionKey = request.cookies.key;
 
-    var username = request.params.username;
-    var sessionkey = request.cookies.key;
+    db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            db.collection("users").updateOne({username: sessionKey}, {$pull: {tweets: {_id: id}}}, function (error) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else {
+                    db.collection("tweets").remove({_id: id, username: sessionKey}, function (error, result) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else if (result.result.n === 1) {
+                            memcached.del(id, function (error) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else {
+                                    response.json({status: "OK"});
+                                }
+                            });
+                        } else {
+                            response.json({status: "error", error: "TWEET " + id + " NOT FOUND OR DOES NOT BELONG TO LOGGED IN USER"});
+                        }
+                    });
+                }
+            });
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
 
-    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
-        if (doc) {
-            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
-                if (document) {
+//Front-end
+app.get("/search", function (request, response) {
+    response.sendFile(path.join(__dirname + "/search.html"));
+});
+
+//Grading script
+app.post("/search", function (request, response) {
+    //Assign defaults
+    var timestamp = Date.now();
+    var limit = 25;
+    var query = "";
+    var username = "";
+    var following = true;
+
+    //Assign values based on request
+    if (request.body.timestamp) {
+        timestamp = parseInt(request.body.timestamp) * 1000;
+    }
+    if (request.body.limit) {
+        var reqLimit = parseInt(request.body.limit);
+        limit = reqLimit > 99 ? 99 : reqLimit;
+    }
+    if (request.body.q) {
+        query = request.body.q;
+    }
+    if (request.body.username) {
+        username = request.body.username;
+    }
+    if (request.body.hasOwnProperty("following")) {
+        following = request.body.following;
+    }
+
+    var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
+    var sessionKey = request.cookies.key;
+    var mcKey = following === true || following === "true" ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username].toString() : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username].toString(); //Memcached key
+
+    db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(mcKey, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.json(data);
+                } else {
+                    if (following === true || following === "true") {
+                        if (username) {
+                            db.collection("users").findOne({username: sessionKey, following: {$in: [username]}}, function (error, loggedInUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (loggedInUser) {
+                                    db.collection("users").findOne({username: username}, function (error, followedUser) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        } else if (followedUser) {
+                                            var tweets = followedUser.tweets;
+                                            var followingUsername = [];
+
+                                            for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
+                                                var tweet = tweets[i]
+                                                if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                                    followingUsername.push({
+                                                        id: tweet._id,
+                                                        username: tweet.username,
+                                                        content: tweet.content,
+                                                        timestamp: tweet.timestamp
+                                                    });
+                                                }
+                                            }
+                                            var data = {status: "OK", items: followingUsername};
+                                            if (followingUsername.length === limit) {
+                                                memcached.set(mcKey, data, 0, function (error) {
+                                                    if (error) {
+                                                        response.json({status: "error", error: error.toString()});
+                                                    } else {
+                                                        response.json(data);
+                                                    }
+                                                });
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        } else {
+                                            response.json({status: "error", error: "FOLLOWED USER " + username + " NOT FOUND"});
+                                        }
+                                    });
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
+                        } else {
+                            db.collection("users").findOne({username: sessionKey}, function (error, loggedInUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (loggedInUser) {
+                                    db.collection("users").find({username: {$in: loggedInUser.following}}).toArray(function (error, followees) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        } else if (followees) {
+                                            var followingNoUsername = [];
+
+                                            for (var i = 0; i < followees.length && followingNoUsername.length < limit; i++) {
+                                                var tweets = followees[i].tweets;
+
+                                                for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
+                                                    var tweet = tweets[j];
+                                                    if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                                        followingNoUsername.push({
+                                                            id: tweet._id,
+                                                            username: tweet.username,
+                                                            content: tweet.content,
+                                                            timestamp: tweet.timestamp
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            var data = {status: "OK", items: followingNoUsername};
+                                            if (followingNoUsername.length === limit) {
+                                                memcached.set(mcKey, data, 0, function (error) {
+                                                    if (error) {
+                                                        response.json({status: "error", error: error.toString()});
+                                                    } else {
+                                                        response.json(data);
+                                                    }
+                                                });
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        } else {
+                                            response.json({status: "OK", items: []});
+                                        }
+                                    });
+                                } else {
+                                    response.json({status: "error", error: sessionKey + " NOT FOUND"});
+                                }
+                            });
+                        }
+                    } else {
+                        if (username) {
+                            db.collection("users").findOne({username: username}, function (error, searchedUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (searchedUser) {
+                                    var tweets = searchedUser.tweets;
+                                    var notFollowingUsername = [];
+
+                                    for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
+                                        var tweet = tweets[i];
+                                        if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                            notFollowingUsername.push({
+                                                id: tweet._id,
+                                                username: tweet.username,
+                                                content: tweet.content,
+                                                timestamp: tweet.timestamp
+                                            });
+                                        }
+                                    }
+                                    var data = {status: "OK", items: notFollowingUsername};
+                                    if (notFollowingUsername.length === limit) {
+                                        memcached.set(mcKey, data, 0, function (error) {
+                                            if (error) {
+                                                response.json({status: "error", error: error.toString()});
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        });
+                                    } else {
+                                        response.json(data);
+                                    }
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
+                        } else {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).toArray(function (error, tweets) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (tweets) {
+                                    var notFollowingNoUsername = [];
+
+                                    for (var i = 0; i < tweets.length; i++) {
+                                        var tweet = tweets[i];
+                                        notFollowingNoUsername.push({
+                                            id: tweet._id,
+                                            username: tweet.username,
+                                            content: tweet.content,
+                                            timestamp: tweet.timestamp
+                                        });
+                                    }
+                                    var data = {status: "OK", items: notFollowingNoUsername};
+                                    if (notFollowingNoUsername.length === limit) {
+                                        memcached.set(mcKey, data, 0, function (error) {
+                                            if (error) {
+                                                response.json({status: "error", error: error.toString()});
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        });
+                                    } else {
+                                        response.json(data);
+                                    }
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Front-end
+app.post("/user", function (request, response) {
+    var sessionKey = request.cookies.key;
+
+    db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            db.collection("users").findOne({username: sessionKey}, function (error, doc) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (doc) {
                     response.json({
-                        status: "OK", 
-                        users: document.followers
+                        status: "OK",
+                        user: {
+                            username: sessionKey,
+                            email: doc.email,
+                            followers: doc.followers.length,
+                            following: doc.following.length
+                        }
                     });
                 } else {
-                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
+                    response.json({status: "error", error: sessionKey + " NOT FOUND"});
                 }
-            }); 
+            });
         } else {
-            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+            response.json({status: "error", error: "NOT LOGGED IN"});
         }
     });
 });
 
-//grading
-app.get("/user/:username/following", function (request, response) {
- 
+//Grading script
+app.get("/user/:username", function (request, response) {
     var username = request.params.username;
-    var sessionkey = request.cookies.key;
 
-    db.collection("sessions").findOne( {"sessionkey": sessionkey}, {"sessionkey": 1}, (error, doc) => {
-        if (doc) {
-            db.collection("users").findOne({"username": username, verified: "yes"}, (error, document) => {
-                if (document) {
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            db.collection("users").findOne({username: username}, function (error, doc) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (doc) {
                     response.json({
-                        status: "OK", 
-                        users: document.following
+                        status: "OK",
+                        user: {
+                            email: doc.email,
+                            followers: doc.followers.length,
+                            following: doc.following.length
+                        }
                     });
                 } else {
-                    response.json({status: "error", error: "THE USER YOU ARE LOOKING FOR DOES NOT EXIST"});
+                    response.json({status: "error", error: username + " NOT FOUND"});
                 }
-            }); 
+            });
         } else {
-            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+            response.json({status: "error", error: "NOT LOGGED IN"});
         }
     });
 });
 
-//front end to get everyone's followers list
+//Front-end to get everyone's followers list
 app.get("/followers/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/followers.html"));
 });
 
-//front end to get everyone's following list
+//Grading script
+app.get("/user/:username/followers", function (request, response) {
+    var username = request.params.username;
+    var limit = 50;
+    if (request.body.limit) {
+        var reqLimit = parseInt(request.body.limit);
+        limit = reqLimit > 199 ? 199 : reqLimit;
+    }
+
+    var mcKey = [username, limit, "followers"].toString(); //Memcached key
+
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(mcKey, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.json(data);
+                } else {
+                    db.collection("users").findOne({username: username}, function (error, doc) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else if (doc) {
+                            var followers = doc.followers;
+                            var followersToSend = [];
+
+                            for (var i = 0; i < followers.length && followersToSend.length < limit; i++) {
+                                followersToSend.push(followers[i]);
+                            }
+                            var data = {status: "OK", users: followersToSend};
+                            if (followersToSend.length === limit) {
+                                memcached.set(mcKey, data, 0, function (error) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json(data);
+                                    }
+                                });
+                            } else {
+                                response.json(data);
+                            }
+                        } else {
+                            response.json({status: "error", error: username + " NOT FOUND"});
+                        }
+                    });
+                }
+            });
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Front-end to get everyone's following list
 app.get("/following/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/following.html"));
 });
 
-app.listen(1337);
-console.log("Server started");
+//Grading script
+app.get("/user/:username/following", function (request, response) {
+    var username = request.params.username;
+    var limit = 50;
+    if (request.body.limit) {
+        var reqLimit = parseInt(request.body.limit);
+        limit = reqLimit > 199 ? 199 : reqLimit;
+    }
+
+    var mcKey = [username, limit, "following"].toString(); //Memcached key
+
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(mcKey, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.json(data);
+                } else {
+                    db.collection("users").findOne({username: username}, function (error, doc) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else if (doc) {
+                            var following = doc.following;
+                            var followingToSend = [];
+
+                            for (var i = 0; i < following.length && followingToSend.length < limit; i++) {
+                                followingToSend.push(following[i]);
+                            }
+                            var data = {status: "OK", users: followingToSend};
+                            if (followingToSend.length === limit) {
+                                memcached.set(mcKey, data, 0, function (error) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json(data);
+                                    }
+                                });
+                            } else {
+                                response.json(data);
+                            }
+                        } else {
+                            response.json({status: "error", error: username + " NOT FOUND"});
+                        }
+                    });
+                }
+            });
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Front-end
+app.get("/follow", function (request, response) {
+    response.sendFile(path.join(__dirname + "/follow.html"));
+});
+
+//Grading script
+app.post("/follow", function (request, response) {
+    var followee = request.body.username;
+    var follow = true;
+    if (request.body.hasOwnProperty("follow")) {
+        follow = request.body.follow;
+    }
+    var follower = request.cookies.key;
+
+    db.collection("sessions").findOne({key: follower}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            if (follow === true || follow === "true") {
+                db.collection("users").findOne({username: followee}, function (error, doc) {
+                    if (error) {
+                        response.json({status: "error", error: error.toString()});
+                    } else if (doc) {
+                        db.collection("users").updateOne({username: followee}, {$addToSet: {followers: follower}}, function (error) {
+                            if (error) {
+                                response.json({status: "error", error: error.toString()});
+                            } else {
+                                db.collection("users").updateOne({username: follower}, {$addToSet: {following: followee}}, function (error) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json({status: "OK"});
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        response.json({status: "error", error: followee + " NOT FOUND"});
+                    }
+                });
+            } else {
+                db.collection("users").findOne({username: followee}, function (error, doc) {
+                    if (error) {
+                        response.json({status: "error", error: error.toString()});
+                    } else if (doc) {
+                        db.collection("users").updateOne({username: followee}, {$pull: {followers: follower}}, function (error) {
+                            if (error) {
+                                response.json({status: "error", error: error.toString()});
+                            } else {
+                                db.collection("users").updateOne({username: follower}, {$pull: {following: followee}}, function (error) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json({status: "OK"});
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        response.json({status: "error", error: followee + " NOT FOUND"});
+                    }
+                });
+            }
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Front-end to get everyone's profile
+app.get("/profile/:username", function (request, response) {
+    response.sendFile(path.join(__dirname + "/profile.html"));
+});
+
+//Front-end to determine who user is in HTML/JS
+app.post("whoami", function (request, response) {
+    if (request.cookies.key) {
+        response.json({status: "OK", username: request.cookies.key});
+    } else {
+        response.json({status: "error", error: "NOT LOGGED IN"});
+    }
+});
+
+var port = 1337;
+app.listen(port);
+console.log("Server started on port", port);
