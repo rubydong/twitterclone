@@ -5,7 +5,14 @@
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
-
+                
+        <style>
+            /* do not move to regular css!! */
+            #tweetsInfo {
+                float: none;
+                width: 100%;
+            }
+        </style>
     </head>
     
     <body>
@@ -19,6 +26,28 @@
         </div> 
         
         <div class="everything" ng-app="myApp" ng-controller="myCtrl" ng-cloak>
+        
+            <div id="tweetsInfo">
+                <div class="tweet" ng-repeat = "tweet in searchResults.items |orderBy:'-'">
+                    <img src='' align='left'> 
+                    @{{tweet.username}}
+                    Id #{{tweet.id}} 
+                    {{tweet.timestamp | date:'M/d/yyyy'}}
+                    <br>
+                    {{tweet.content}} 
+                </div>
+                
+                <div class="tweet" id='one'>
+                    <img src='' align='left'> 
+                    @{{itemResult.item.username}}
+                    Id #{{itemResult.item.id}} 
+                    {{itemResult.item.timestamp | date:'M/d/yyyy'}}
+                    <br>
+                    {{itemResult.item.content}} 
+                </div>
+            </div>
+            
+            <div class="hideThis">
             <form method="POST" action="/search" id="searchForm">
                 <h5>ADVANCED SEARCH</h5>
                 
@@ -38,16 +67,14 @@
                     <button type="submit" class="btn btn-default" style="margin-top: 10px">Submit</button>
                 </div>
             </form>
+            </div>
         </div>
         
-        <div id="addInfoHere"></div>
-            
-        
-            
         
         <script>
             var app = angular.module('myApp', []);
             app.controller('myCtrl', function($scope, $http) {
+                $("#one").hide();
                 $("#logoutLink").click(function(event) {
                     var logout = $http.get("/logout");
                 });
@@ -61,32 +88,23 @@
                         window.location = "/login";
                 });
                 
-                var searchResults = $http.post("/search",
-                            JSON.stringify({
-                            timestamp: $("input[name='timestamp']").val(), 
-                            limit: $("input[name='limit']").val(), 
-                            q: $("input[name='q']").val(),
-                            username: $("input[name='username']").val(),
-                            following: $("input[name='following']").val()
-                }));
                 
                 $("#searchForm").submit(function (event) {
                     event.preventDefault(); 
+                    var searchResults = $http.post("/search",
+                        JSON.stringify({
+                        timestamp: $("input[name='timestamp']").val(), 
+                        limit: $("input[name='limit']").val(), 
+                        q: $("input[name='q']").val(),
+                        username: $("input[name='username']").val(),
+                        following: $("input[name='following']").val()
+                    }));
                     searchResults.success(function (data) {
-                        if (data.status == "OK"){
-                            $(".everything").html("");
-                            $("#addInfoHere").html("");
-                            for (var i = 0; i < data.items.length; i++) {
-                                var timestamp = data.items[i].timestamp;
-                                var date = new Date (timestamp);
-                                var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-
-                                $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.items[i].username + " Id #" + data.items[i].id + "   " + date + "</div>" + data.items[i].content + "</div>");
-
-                            }
-                        } else {
-                            window.location = "/login";
-                        }
+                        if (data.status == "OK")
+                            $scope.searchResults = data;
+                        else    
+                            $(".tweetsInfo").html(data.error);
+                        $(".hideThis").html("");
                     });
                 });
                 $("#itemForm").submit(function (event) {
@@ -96,17 +114,12 @@
                     }));
 
                     tweetRetrieval.success(function (data) {
-                         if (data.status=="OK"){
-                                $(".everything").html("");
-                                $("#addInfoHere").html("");
-                                var timestamp = data.item.timestamp;
-                                var date = new Date (timestamp);
-                                var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-
-                                $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.item.username + " Id #" + data.item.id + "   " + date + "</div>" + data.item.content + "</div>");
-                            } else {
-                                $("#addInfoHere").prepend("<p style='text-align:center'>" + data.error);
-                            }
+                        $(".hideThis").html("");
+                        $("#one").show();
+                        if (data.status == "OK")
+                            $scope.itemResult = data;
+                        else
+                            $(".tweetsInfo").html(data.error);
                     });
                 });
             });

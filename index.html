@@ -98,7 +98,6 @@
                             var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
                             postToNewsfeed.success(function (d) {
                                 if (d.status == "OK") {
-                                    
                                     var timestamp = d.item.timestamp;
                                     var date = new Date (timestamp);
                                     var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
