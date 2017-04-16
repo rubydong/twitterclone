@@ -81,6 +81,8 @@
                             var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
                             
                             $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + tweetsArr[i].username + " Id #" + tweetsArr[i].id + "   " + date + "</div>" + tweetsArr[i].content + "</div>");
+                            
+//                            $("#newsfeed").prepend("<div class='tweet'> <div class='userIcon'><img src='' align='left'></div> <div class='tweetsubinfo'>@" + tweetsArr[i].username + " Id #" + tweetsArr[i].id + "   " + date + "</div>" + tweetsArr[i].content + "<br><img src='img/liked.png'></div>");
                         }
                     } else {
                         window.location = "/login";
@@ -137,6 +139,8 @@
                                     var timestamp = d.item.timestamp;
                                     var date = new Date (timestamp);
                                     var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
+                                        
+                                    
                                     
                                     $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
                                 }

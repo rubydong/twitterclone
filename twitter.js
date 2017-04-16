@@ -14,15 +14,6 @@ app.use(express.static(__dirname));
 app.use(cookieParser());
 app.set("trust proxy", 1); //Trust first proxy
 
-/*
-	TRY TO MODULARIZE THIS GIANT CHUNK
-
-
-
-*/
-
-
-
 MongoClient.connect("mongodb://localhost:27017/twitter", (err,database) => {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
@@ -64,7 +55,6 @@ function sendEmail(email, key) {
         console.log('Message sent');
     });
 }
-
 
 //grading
 app.post("/adduser", function (req, res) {
@@ -215,7 +205,10 @@ app.post("/additem", function (req, res) {
                               "id": id,   
                               "username": sessionkey,
                               "content": content,
-                              "timestamp": timestamp
+                              "timestamp": timestamp, 
+                              "media": "media",
+                              "notes": 0, 
+                              "likers": []
                         }
                     } 
                 }, {w:1}, (error, result) => {
@@ -226,7 +219,10 @@ app.post("/additem", function (req, res) {
                             "id": id,   
                             "username": sessionkey,
                             "content": content,
-                            "timestamp": timestamp
+                            "timestamp": timestamp, 
+                            "media": "media",
+                            "notes": 0,
+                            "likers": []
                         };
                         
                         db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
@@ -264,6 +260,8 @@ app.get("/item/:id", function (request, response) {
                                 content: documentA.content,
                                 timestamp: documentA.timestamp
                             }
+                            
+                            //media: {documentA.media}
                         });
                 } else {
                     response.json({status: "error", error: "NO TWEET FOUND WITH ID"});
@@ -274,7 +272,7 @@ app.get("/item/:id", function (request, response) {
         }
     });
 });
-//});
+
 
 //grading
 app.delete("/item/:id", function (request, response) {
@@ -366,7 +364,6 @@ app.post("/whoami", function (request, response) {
         response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
 });
 
-
 //grading
 function checkConditions(tweets, query, timestamp) {
 	if (tweets.content.indexOf(query) == -1)
@@ -379,6 +376,7 @@ function checkConditions(tweets, query, timestamp) {
 
 //grading
 app.post("/search", function(req, res) {
+    
     console.log(req.body);
 
 	var timestamp = new Date().getTime();
@@ -419,9 +417,7 @@ app.post("/search", function(req, res) {
                             db.collection("users").findOne({"username": username, verified: "yes"}, (error, followinguser) => {
                                 if (followinguser) {
                                     var tweets = followinguser.tweets;
-
                                     var send1 = new Array();
-
                                     var count1 = 0;
 
                                     for (var i = 0; i < tweets.length && count1 < limit; i++) {
@@ -452,6 +448,7 @@ app.post("/search", function(req, res) {
                         if (user) {
                             var follow = user.following;
                             db.collection("users").find({username:{$in: follow}, verified: "yes"}).toArray((err,val) => {
+                                    
                                     var send2 = new Array();
                                     var count2 = 0;
                                     for (var i = 0; i < val.length && count2 < limit; i++) {
@@ -730,6 +727,91 @@ app.get("/followers/:username", function (request, response) {
 app.get("/following/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/following.html"));
 });
+
+//frontend - temp like, to be moved to the tweets section later as a heart
+//app.get("/like", function (request, response) {
+//    response.sendFile(path.join(__dirname + "/like.html"));
+//});
+
+//grading
+app.post("/item/:id/like", function (request, response) {
+    var likeBool = true; 
+    if (request.body.like != null) {
+        likeBool = request.body.like;
+    }
+    
+    console.log("likebool is now " + likeBool);
+    
+    var id = request.params.id;
+    var currentUser = request.cookies.key;
+    
+    db.collection("sessions").findOne({"sessionkey": currentUser},{"sessionkey": 1}, (error, doc) => {
+		//if the user is logged in
+        if (doc) { 
+            db.collection("tweets").findOne({"id": id}, (error, doc) => {
+                //if the tweet exists in tweet database
+                if (doc) {
+                    var tweetUser = doc.username;
+                    var likers = doc.likers;
+                    var alreadyLiked = false;
+                    
+                    for (var i = 0; i< likers.length; i++) {
+                        console.log("likers[i] and currentUser" + likers[i] + " " + currentUser);
+                        if (likers[i] == currentUser) {
+                            alreadyLiked = true; 
+                            break;
+                        }
+                    }
+                    
+                    
+                    console.log("alreadyLiked and likeBool " + alreadyLiked + " " + likeBool);
+                
+                    if (!alreadyLiked && likeBool) {
+                        //have not already liked and you want to like
+                        console.log("not liked so imma add");
+                        db.collection("tweets").update(
+                            {"id": id}, 
+                            { $inc: {notes: 1}, $addToSet: {"likers": currentUser}}
+                        );
+                        
+                        db.collection("users").update(
+                            {username: tweetUser, "tweets.id": id}, 
+                            {$inc: {"tweets.$.notes":1}, $addToSet: {"tweets.$.likers": currentUser}}
+                        )    
+                        response.json({status: "OK"});
+                    } else if (alreadyLiked && !likeBool) {
+                        //been liking it but no longer likes it
+                        console.log("im unliking");
+                        db.collection("tweets").update(
+                            {"id": id}, 
+                            { $inc: {notes: -1}, $pull: {"likers": currentUser}}
+                        );
+                        
+                        db.collection("users").update(
+                            {username: tweetUser, "tweets.id": id}, 
+                            {$inc: {"tweets.$.notes": -1}, $pull: {"tweets.$.likers": currentUser}}
+                        )    
+                        
+                        response.json({status: "OK"});
+                        
+                    } else {
+                        response.json({status: "error", error: "You are trying to unlike/like something you have already not liked or liked"});
+                    }
+                       
+                } else {
+                    response.json({status: "error", error: "Did not find a tweet with this id"});
+                }
+            });
+                 
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
+});
+
+
+
+
 
 app.listen(1337);
 console.log("Server started");
