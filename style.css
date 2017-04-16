@@ -84,6 +84,11 @@ button:hover, button:active{ /*#26A69A*/
     margin-top: 10px;
 }
 
+#addInfoHere {
+    width: 50%;
+    margin: 0 auto;
+}
+
 #tweetsInfo {
     float: right;
     position: relative;
@@ -116,6 +121,19 @@ textarea:focus {outline:0;}
     width: 40px;
 }
 
+#tweetButton {
+    margin-top: 10px;
+    border:1px solid #D4D4D4; 
+    border-radius: 5px; 
+    background-color: #FFF;
+    color: #798AA8 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+#tweetButton:hover {
+    color: #999EA8 !important;
+    background-color: #FFF !important;
+}
 
 /*border + background color*/
 .navigation, #userInfo img, textarea, .tweet, .info, #itemForm, #searchForm, #followForm {
@@ -167,7 +185,7 @@ textarea:focus {outline:0;}
 }
 
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
-  display: none !important;
+    display: none !important;
 }
 
 #followeringBox {

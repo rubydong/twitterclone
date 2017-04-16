@@ -5,21 +5,7 @@
         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-        <style>
-            #tweetButton {
-                margin-top: 10px;
-                border:1px solid #D4D4D4; 
-                border-radius: 5px; 
-                background-color: #FFF;
-                color: #798AA8 !important;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }
-            #tweetButton:hover {
-                color: #999EA8 !important;
-                background-color: #FFF !important;
-            }
-        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
     </head>
     
     <body>
@@ -33,12 +19,17 @@
         </div> 
         
         
-        <div class="everything">
+        <div class="everything" ng-app="myApp" ng-controller="myCtrl" ng-cloak>
         
             <div id="userInfo">
 
                 <img src=""> <br>
-                <div class="info"></div>
+                <div class="info">
+                    @ {{userinfo.user.username}} <br>
+                    {{userinfo.user.email}} <br>
+                    {{userinfo.user.followers}} <a href="/followers/{{userinfo.user.username}}">Followers</a> <br>
+                    {{userinfo.user.following}} <a href="/following/{{userinfo.user.username}}">Following </a> <br>
+                </div>
             </div>
 
             <div id="tweetsInfo">
@@ -55,109 +46,80 @@
                     </div>
                 </form>
 
-                <div id="newsfeed"></div>
+                <div id="newsfeed">
+                    <div class="tweet" ng-repeat = "tweet in newsfeed.items |orderBy:'-'">
+                        <img src='' align='left'> @{{tweet.username}}
+                        Id #{{tweet.id}} 
+                        {{tweet.timestamp | date:'M/d/yyyy'}}
+                        <a href="" class="delete" id= "{{tweet.id}}"></a>
+                        <br>
+                        {{tweet.content}} 
+                    </div>
+                </div>
             </div>
 
         </div>
         <script>
 
-            $(document).ready(function () {
-                
-                
-                $.ajax ({
-                    "url": "/search",
-                    "type": "POST",
-                    "data": JSON.stringify({
-                            following: true
-                        }), 
-                        "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8"
-                }).done(function (data) {
+            var app = angular.module('myApp', []);
+            
+            app.controller('myCtrl', function($scope, $http) {
+                var userInfo = $http.post("/user");
+                userInfo.success(function (data) {
                     if (data.status == "OK") {
-                        var tweetsArr = data.items;
-                        for (var i = 0; i < tweetsArr.length; i++) {
-                            var timestamp = tweetsArr[i].timestamp;
-                            var date = new Date (timestamp);
-                            var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-                            
-                            $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + tweetsArr[i].username + " Id #" + tweetsArr[i].id + "   " + date + "</div>" + tweetsArr[i].content + "</div>");
-                            
-//                            $("#newsfeed").prepend("<div class='tweet'> <div class='userIcon'><img src='' align='left'></div> <div class='tweetsubinfo'>@" + tweetsArr[i].username + " Id #" + tweetsArr[i].id + "   " + date + "</div>" + tweetsArr[i].content + "<br><img src='img/liked.png'></div>");
-                        }
+                        $scope.userinfo = data;
+                        document.getElementById('profileClick').setAttribute('href',"/profile/" + data.user.username);
                     } else {
                         window.location = "/login";
                     }
                 });
                 
-                $.ajax ({
-                    "url": "/user", 
-                    "type": "POST"
-                }).done(function (data) {
+                var newsfeed = $http.post("/search", 
+                JSON.stringify({following: false}));
+                newsfeed.success(function (data) {
                     if (data.status == "OK") {
-                        
-                        var followers = "<a href='/followers/" + data.user.username + "'> Followers </a>";
-                        var following = "<a href='/following/" + data.user.username + "'> Following </a>";
-                        
-                        $(".info").append("@" + data.user.username + "<br>" + "Email: " +data.user.email + "<br>"  + data.user.followers + " " + followers + "<br>" + data.user.following + " " + following); 
-                        document.getElementById('profileClick').setAttribute('href',"/profile/" + data.user.username);
+                        $scope.newsfeed = data;
                     } else {
-                         //alert(JSON.stringify(data.error));
+                        window.location = "/login";
                     }
                 });
                 
-                $("#logoutLink").click(function(event) {
-                    $.ajax ({
-                        "url": "/logout",
-                        "type": "GET"
-                    });
-                });
                 
-                 $("#additemForm").submit(function (event) {
+                $("#logoutLink").click(function(event) {
+                    var logout = $http.get("/logout");
+                });
+            
+                $("#additemForm").submit(function (event) {
                     event.preventDefault(); 
-                    $.ajax({
-                        "url": "/additem",
-                        "type":"POST",
-                        "data": JSON.stringify({
-                            content: $("textarea[name='content'").val()
-                        }), 
-                        "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8"
-                    }).done(function(data){
+                    var addtweet = $http.post("/additem", JSON.stringify({content: $("textarea[name='content'").val()}));
+                    addtweet.success(function (data) {
                         if (data.status == "OK") {
                             $("#content").val("");
-                            //alert(data.id);
-                            $.ajax({
-                                "url": "/item",
-                                "type": "POST",
-                                "data": JSON.stringify({
-                                    itemId: data.id
-                                }), 
-                                "dataType": "json", 
-                                "contentType": "application/json; charset=utf-8"
-                            }).done(function(d) {
+                            var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
+                            postToNewsfeed.success(function (d) {
                                 if (d.status == "OK") {
+                                    
                                     var timestamp = d.item.timestamp;
                                     var date = new Date (timestamp);
                                     var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
                                         
-                                    
-                                    
                                     $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
+                                } else {
+                                    $("#newsfeed").prepend("<p> <center>" + data.error);
                                 }
-                            });                         
-                        }
-                        else {
-                            $("#newsfeed").prepend("<p> <center>" + data.error);
+                            });
                         }
                     });
+                
                 });
                 
                 $("#content").on('keyup', function() {
                     var wordcount = this.value.length;
                     $("#count").html(wordcount);
                 });     
-                
             });
+
+
     
         </script>
     </body>

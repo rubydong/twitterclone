@@ -4,13 +4,8 @@
         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-        
-        <style>
-            #addInfoHere {
-                width: 50%;
-                margin: 0 auto;
-            }
-        </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+
     </head>
     
     <body>
@@ -23,7 +18,7 @@
                 <a href="/" style="float: left;">TWITTER</a>
         </div> 
         
-        <div class="everything">
+        <div class="everything" ng-app="myApp" ng-controller="myCtrl" ng-cloak>
             <form method="POST" action="/search" id="searchForm">
                 <h5>ADVANCED SEARCH</h5>
                 
@@ -46,45 +41,38 @@
         </div>
         
         <div id="addInfoHere"></div>
+            
         
+            
         
         <script>
-
-            $(document).ready(function () {
+            var app = angular.module('myApp', []);
+            app.controller('myCtrl', function($scope, $http) {
                 $("#logoutLink").click(function(event) {
-                    $.ajax ({
-                        "url": "/logout",
-                        "type": "GET"
-                    });
+                    var logout = $http.get("/logout");
                 });
-                
-                $.ajax({
-                    url: "/whoami", 
-                    type: "POST"
-                }).done(function(data) {
+                var whoami = $http.post("/whoami");
+                whoami.success(function (data, status) {
                     if (data.status == "OK") {
-                        user = data.username;
-                        document.getElementById('profileClick').setAttribute('href',"/profile/" + user);
-                        
-                    }
+                        $scope.whoami = data;
+                        var newlocation = "window.location='/profile/" + $scope.whoami.username + "'";
+                        document.getElementById('profileClick').setAttribute('href',"/profile/" + data.user.username);
+                    } else 
+                        window.location = "/login";
                 });
                 
-                 $("#searchForm").submit(function (event) {
-                    event.preventDefault(); 
-                    
-                    $.ajax({
-                        "url": "/search",
-                        "type":"POST",
-                        "data": JSON.stringify({
+                var searchResults = $http.post("/search",
+                            JSON.stringify({
                             timestamp: $("input[name='timestamp']").val(), 
                             limit: $("input[name='limit']").val(), 
                             q: $("input[name='q']").val(),
                             username: $("input[name='username']").val(),
                             following: $("input[name='following']").val()
-                        }), 
-                        "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8"
-                    }).done(function(data) {
+                }));
+                
+                $("#searchForm").submit(function (event) {
+                    event.preventDefault(); 
+                    searchResults.success(function (data) {
                         if (data.status == "OK"){
                             $(".everything").html("");
                             $("#addInfoHere").html("");
@@ -94,26 +82,21 @@
                                 var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
 
                                 $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.items[i].username + " Id #" + data.items[i].id + "   " + date + "</div>" + data.items[i].content + "</div>");
-                    
+
                             }
                         } else {
                             window.location = "/login";
                         }
                     });
                 });
-
                 $("#itemForm").submit(function (event) {
                     event.preventDefault(); 
-                    $.ajax({
-                        "url": "/item",
-                        "type":"POST",
-                        "data": JSON.stringify({
-                            itemId: $("input[name='itemId']").val()
-                        }), 
-                        "dataType": "json", 
-                        "contentType": "application/json; charset=utf-8"
-                    }).done(function(data) {
-                            if (data.status=="OK"){
+                    var tweetRetrieval = $http.post("/item", JSON.stringify({
+                        itemId: $("input[name='itemId']").val()
+                    }));
+
+                    tweetRetrieval.success(function (data) {
+                         if (data.status=="OK"){
                                 $(".everything").html("");
                                 $("#addInfoHere").html("");
                                 var timestamp = data.item.timestamp;
@@ -121,15 +104,13 @@
                                 var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
 
                                 $("#addInfoHere").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + data.item.username + " Id #" + data.item.id + "   " + date + "</div>" + data.item.content + "</div>");
+                            } else {
+                                $("#addInfoHere").prepend("<p style='text-align:center'>" + data.error);
                             }
-                        else 
-                            $("#addInfoHere").prepend("<p style='text-align:center'>" + data.error);
                     });
-                    
                 });
-
             });
-    
+        
         </script>
     </body>
 </html>

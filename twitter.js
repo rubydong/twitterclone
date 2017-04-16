@@ -377,7 +377,7 @@ function checkConditions(tweets, query, timestamp) {
 //grading
 app.post("/search", function(req, res) {
     
-    console.log(req.body);
+//    console.log(req.body);
 
 	var timestamp = new Date().getTime();
 	var limit = 25;
@@ -407,7 +407,7 @@ app.post("/search", function(req, res) {
 		if (doc) {
 			tweetsArr = new Array();
             if (following == 'true' || following == true) {
-                console.log("FOLLOWING IS TRUE");
+//                console.log("FOLLOWING IS TRUE");
 
                 if (username) {
 
@@ -476,7 +476,7 @@ app.post("/search", function(req, res) {
                     });
                 }
             } else {
-                console.log("FOLLOWING IS FALSE");
+//                console.log("FOLLOWING IS FALSE");
 
                 if (username) {
                     db.collection("users").findOne({"username": username, verified: "yes"}, (err, user) => {
