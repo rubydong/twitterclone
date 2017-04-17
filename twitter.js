@@ -198,7 +198,7 @@ app.post("/additem", function (req, res) {
     
     /* retweet not implemented yet... */
     var content = req.body.content;
-    var parentId = req.body.parent; 
+    var parent = req.body.parent; 
     var media = req.body.media;
     
     var timestamp = new Date().getTime();
@@ -209,26 +209,29 @@ app.post("/additem", function (req, res) {
             var id = new ObjectID().toHexString();
             
             if (req.body.parent) {
-                db.collection("tweets").findOne({id: parentId}, (error, doc) => {
+                db.collection("tweets").findOne({id: parent}, (error, doc) => {
                     if (doc) {
                         console.log("this tweet id exists so it is now a reply");
                     } else {
-                        console.log("Original tweet, the parentid does not exist");
-                        parentId = "none"; //if no parent id, it'll be default "none"
+                        console.log("Original tweet, the parent does not exist");
+                        parent = "none"; //if no parent id, it'll be default "none"
                     }
                 });
             } else {
                 console.log("Original tweet bc parent id is empty");
-                parentId = "none";
+                parent = "none";
             }
             
             //going to assume valid inputs for images arr..
             if (req.body.media) {
-                media = media.replace('[', '');
-                media = media.replace(']', '');
-                media = media.split(',');
-                
+    
+                if (typeof(req.body.media) == 'string')   {  
+                    media = media.replace('[', '');
+                    media = media.replace(']', '');
+                    media = media.split(',');
+                }
                 for (var i = 0; i< media.length; i++) {
+                    console.log(media[i]);
                     media[i] = media[i].trim();
                     
                     db.collection("images").update(
@@ -248,14 +251,15 @@ app.post("/additem", function (req, res) {
                   $push: {
                         "tweets": {
                               "id": id,   
-                              "parentId": parentId,
+                              "parent": parent,
                               "username": sessionkey,
                               "content": content,
                               "timestamp": timestamp, 
                               "media": media,
-                              "notes": 0, 
-                              "retweets": 0,
-                              "likers": []
+                              "likes": 0, 
+                              "likers": [],
+                              "retweetParent": "none",
+                              "retweets": 0
                         }
                     } 
                 }, {w:1}, (error, result) => {
@@ -264,14 +268,15 @@ app.post("/additem", function (req, res) {
                     } else {
                         var documentA = {
                             "id": id,   
-                            "parentId": parentId,
+                            "parent": parent,
                             "username": sessionkey,
                             "content": content,
                             "timestamp": timestamp, 
                             "media": media,
-                            "notes": 0, 
-                            "retweets": 0,
-                            "likers": []
+                            "likes": 0, 
+                            "likers": [],
+                            "retweetParent": "none",
+                            "retweets": 0
                         };
                         
                         db.collection("tweets").insert(documentA, {w: 1}, (error, result) => {
@@ -307,7 +312,7 @@ app.get("/item/:id", function (request, response) {
                                 username: documentA.username,
                                 content: documentA.content,
                                 timestamp: documentA.timestamp,
-                                parent: documentA.parentId,
+                                parent: documentA.parent,
                                 media: documentA.media
                             }
                         });
@@ -824,12 +829,12 @@ app.post("/item/:id/like", function (request, response) {
                         console.log("not liked so imma add");
                         db.collection("tweets").update(
                             {"id": id}, 
-                            { $inc: {notes: 1}, $addToSet: {"likers": currentUser}}
+                            { $inc: {likes: 1}, $addToSet: {"likers": currentUser}}
                         );
                         
                         db.collection("users").update(
                             {username: tweetUser, "tweets.id": id}, 
-                            {$inc: {"tweets.$.notes":1}, $addToSet: {"tweets.$.likers": currentUser}}
+                            {$inc: {"tweets.$.likes":1}, $addToSet: {"tweets.$.likers": currentUser}}
                         )    
                         response.json({status: "OK"});
                     } else if (alreadyLiked && !likeBool) {
@@ -837,12 +842,12 @@ app.post("/item/:id/like", function (request, response) {
                         console.log("im unliking");
                         db.collection("tweets").update(
                             {"id": id}, 
-                            { $inc: {notes: -1}, $pull: {"likers": currentUser}}
+                            { $inc: {likes: -1}, $pull: {"likers": currentUser}}
                         );
                         
                         db.collection("users").update(
                             {username: tweetUser, "tweets.id": id}, 
-                            {$inc: {"tweets.$.notes": -1}, $pull: {"tweets.$.likers": currentUser}}
+                            {$inc: {"tweets.$.likes": -1}, $pull: {"tweets.$.likers": currentUser}}
                         )    
                         
                         response.json({status: "OK"});
