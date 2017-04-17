@@ -248,86 +248,308 @@ app.get("/search", function(request, response) {
    response.sendFile(path.join(__dirname + "/search.html")); 
 });
 
-app.post("/search", function(request, response) {
-    console.log("IN SEARCH POST");
-	console.log(request);
-    var timestamp = request.body.timestamp;
-    /* optional */
-    var limit = request.body.limit;
-    var currentLimit = 0;
-	limit = 25;
-	if (request.body.limit) {
-		limit = request.body.limit;
-	}
-    //search through database for less than this time
-    //check if timestamp is empty
-	console.log("TIME STAMP: ", timestamp);
+function FilterTweets(tweets, parent, replies) {
+    if (parent != "none" && (replies == false || replies == "false"))
+        return [];
 
-	if (request.body.timestamp) {
-		console.log("timestamp exists");
-		timestamp = timestamp * 1000;
-	} else {
-		timestamp = new Date().getTime();
-		console.log("default timestamp ", timestamp);
-	}
-    if (timestamp) {
-        if (!request.session.isnew && request.session.username != null) {
+    if (parent == "none" && (replies == true || replies == "true"))
+        return tweets;
 
-			var items = new Array();
-			db.collection("tweets").find({timestamp: {$lte: parseInt(timestamp)}}).limit(limit).each(function(err,val) {
-				if (val) {
-				//console.log("in here");
-				if (currentLimit < limit) {
+    var filtered = [];
+    for (var i = 0; i < tweets.length; i++) {
+        var tweet = tweets[i];
+        if (replies == false || replies == "false") {
+            if (tweet.parent == "none")
+                filtered.push(tweet);
+        } else {
+            if (parent != "none" && parent == tweet.parent)
+                filtered.push(tweet);
+        }
+    }
+    return filtered;
+}
 
-					if (val.username == request.session.username) {
-							console.log("IN HERE BOYS");
-					}
-					console.log("pushing");
-					items.push(val);
-					//items.push({id:val.tweet_id,username:val.username,content:val.content,timestamp:val.timestamp});
-					currentLimit++;
-				}		
-				} else {
-				console.log(currentLimit);	
+function compareTimes(a, b) {
+    if (a.timestamp > b.timestamp) {
+        return 1;
+    }
+    if (a.timestamp < b.timestamp) {
+        return -1;
+    }
+    return 0;
+}
 
-				///console.log(JSON.stringify(items));
-				response.json({status:"OK", items:items});
-				}
-			});
+function compareInterest(a, b) {
+    var sum_a = a.retweets + a.likes;
+    var sum_b = b.retweets + b.likes;
 
-          /*    db.collection("users").find(function (error, document) {
-                if (document) {
-					var it = document.toArray();
-					console.log(it[0]);
-                    var tweets = document.tweets;
-                    var found = false;
-                    var items = new Array();
-					console.log(tweets);
-                    for (var i = 0; i < tweets.length; i++) {
-						console.log("curr ts: ", tweets[i].timestamp, "real ts: ", timestamp);
-                        if (tweets[i].timestamp <= timestamp) {
-							console.log("am i here");
-                            if (limit != "" && currentLimit >= limit){
-                                break;
-                            }
-                            currentLimit++;
-                            found = true;
-                            items.push(tweets[i]);
+    if (sum_a > sum_b) {
+        return 1;
+    }
+    if (sum_a < sum_b) {
+        return -1;
+    }
+    return 0;
+}
+
+function RankTweets(tweets, rank) {
+    if (rank == "interest") {
+        tweets.sort(compareInterest);
+    } else {
+        tweets.sort(compareTimes);
+    }
+    return tweets;
+}
+
+app.post("/search", function (request, response) {
+    //Assign defaults
+    var timestamp = Date.now();
+    var limit = 25;
+    var query = "";
+    var username = "";
+    var following = true;
+    var parent = "none";
+    var replies = true;
+    var rank = "interest";
+
+    //Assign values based on request
+    if (request.body.timestamp) {
+        timestamp = parseInt(request.body.timestamp) * 1000;
+    }
+    if (request.body.limit) {
+        var reqLimit = parseInt(request.body.limit);
+        limit = reqLimit > 99 ? 99 : reqLimit;
+    }
+    if (request.body.q) {
+        query = request.body.q;
+    }
+    if (request.body.username) {
+        username = request.body.username;
+    }
+    if (request.body.hasOwnProperty("following")) {
+        following = request.body.following;
+    }
+    if (request.body.parent) {
+        parent = parseInt(request.body.parent);
+    }
+    if (request.body.hasOwnProperty("replies")) {
+        replies = request.body.replies;
+    }
+    if (request.body.rank) {
+        rank = request.body.rank;
+    }
+
+
+    // regex to break up query into separate tokens
+    var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
+    var sessionKey = request.cookies.key;
+    var mcKey = following === true || following === "true" ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString() : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString(); //Memcached key
+
+    db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(mcKey, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.json(data);
+                } else {
+                    if (following === true || following === "true") {
+                        if (username) {
+                            db.collection("users").findOne({username: sessionKey, following: {$in: [username]}}, function (error, loggedInUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (loggedInUser) {
+                                    db.collection("users").findOne({username: username}, function (error, followedUser) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        } else if (followedUser) {
+                                            var tweets = followedUser.tweets;
+                                            var followingUsername = [];
+
+                                            for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
+                                                var tweet = tweets[i]
+                                                if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                                    followingUsername.push({
+                                                        id: tweet._id,
+                                                        username: tweet.username,
+                                                        content: tweet.content,
+                                                        timestamp: tweet.timestamp,
+                                                        parent: tweet.parent,
+                                                        retweets: tweet.retweets,
+                                                        likes: tweet.likes
+                                                    });
+                                                }
+                                            }
+
+                                            followingUsername = FilterTweets(followingUsername, parent, replies);
+                                            followingUsername = RankTweets(followingUsername, rank);
+
+                                            var data = {status: "OK", items: followingUsername};
+                                            if (followingUsername.length === limit) {
+                                                memcached.set(mcKey, data, 0, function (error) {
+                                                    if (error) {
+                                                        response.json({status: "error", error: error.toString()});
+                                                    } else {
+                                                        response.json(data);
+                                                    }
+                                                });
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        } else {
+                                            response.json({status: "error", error: "FOLLOWED USER " + username + " NOT FOUND"});
+                                        }
+                                    });
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
+                        } else {
+                            db.collection("users").findOne({username: sessionKey}, function (error, loggedInUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (loggedInUser) {
+                                    db.collection("users").find({username: {$in: loggedInUser.following}}).toArray(function (error, followees) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        } else if (followees) {
+                                            var followingNoUsername = [];
+
+                                            for (var i = 0; i < followees.length && followingNoUsername.length < limit; i++) {
+                                                var tweets = followees[i].tweets;
+
+                                                for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
+                                                    var tweet = tweets[j];
+                                                    if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                                        followingNoUsername.push({
+                                                            id: tweet._id,
+                                                            username: tweet.username,
+                                                            content: tweet.content,
+                                                            timestamp: tweet.timestamp,
+                                                            parent: tweet.parent,
+                                                            retweets: tweet.retweets,
+                                                            likes: tweet.likes
+                                                        });
+                                                    }
+                                                }
+                                            }
+
+                                            followingNoUsername = FilterTweets(followingNoUsername, parent, replies);
+                                            followingNoUsername = RankTweets(followingNoUsername, rank);
+
+                                            var data = {status: "OK", items: followingNoUsername};
+                                            if (followingNoUsername.length === limit) {
+                                                memcached.set(mcKey, data, 0, function (error) {
+                                                    if (error) {
+                                                        response.json({status: "error", error: error.toString()});
+                                                    } else {
+                                                        response.json(data);
+                                                    }
+                                                });
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        } else {
+                                            response.json({status: "OK", items: []});
+                                        }
+                                    });
+                                } else {
+                                    response.json({status: "error", error: sessionKey + " NOT FOUND"});
+                                }
+                            });
+                        }
+                    } else {
+                        if (username) {
+                            db.collection("users").findOne({username: username}, function (error, searchedUser) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (searchedUser) {
+                                    var tweets = searchedUser.tweets;
+                                    var notFollowingUsername = [];
+
+                                    for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
+                                        var tweet = tweets[i];
+                                        if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
+                                            notFollowingUsername.push({
+                                                id: tweet._id,
+                                                username: tweet.username,
+                                                content: tweet.content,
+                                                timestamp: tweet.timestamp,
+                                                parent: tweet.parent,
+                                                retweets: tweet.retweets,
+                                                likes: tweet.likes
+                                            });
+                                        }
+                                    }
+
+                                    notFollowingUsername = FilterTweets(notFollowingUsername, parent, replies);
+                                    notFollowingUsername = RankTweets(notFollowingUsername, rank);
+
+                                    var data = {status: "OK", items: notFollowingUsername};
+                                    if (notFollowingUsername.length === limit) {
+                                        memcached.set(mcKey, data, 0, function (error) {
+                                            if (error) {
+                                                response.json({status: "error", error: error.toString()});
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        });
+                                    } else {
+                                        response.json(data);
+                                    }
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
+                        } else {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).toArray(function (error, tweets) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else if (tweets) {
+                                    var notFollowingNoUsername = [];
+
+                                    for (var i = 0; i < tweets.length; i++) {
+                                        var tweet = tweets[i];
+                                        notFollowingNoUsername.push({
+                                            id: tweet._id,
+                                            username: tweet.username,
+                                            content: tweet.content,
+                                            timestamp: tweet.timestamp,
+                                            parent: tweet.parent,
+                                            retweets: tweet.retweets,
+                                            likes: tweet.likes
+                                        });
+                                    }
+
+                                    notFollowingNoUsername = FilterTweets(notFollowingNoUsername, parent, replies);
+                                    notFollowingNoUsername = RankTweets(notFollowingNoUsername, rank);
+
+                                    var data = {status: "OK", items: notFollowingNoUsername};
+                                    if (notFollowingNoUsername.length === limit) {
+                                        memcached.set(mcKey, data, 0, function (error) {
+                                            if (error) {
+                                                response.json({status: "error", error: error.toString()});
+                                            } else {
+                                                response.json(data);
+                                            }
+                                        });
+                                    } else {
+                                        response.json(data);
+                                    }
+                                } else {
+                                    response.json({status: "OK", items: []});
+                                }
+                            });
                         }
                     }
-                  	console.log(items.length); 
-                    response.json({status:"OK", "items": items});
-                    
                 }
-           
-		*/
-			//response.json({status:"OK",items: items});
+            });
         } else {
-            response.json({status: "ERROR", "Error": "USER IS NOT LOGGED"});
+            response.json({status: "error", error: "NOT LOGGED IN"});
         }
-    } else {
-        response.json({status: "ERROR", "Error": "TIMESTAMP IS EMPTY"});
-    }
+    });
 });
         
 app.listen(1337);
