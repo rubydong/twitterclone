@@ -195,6 +195,8 @@ app.post("/verify", function (req, res) {
 
 //grading
 app.post("/additem", function (req, res) {
+    
+    /* retweet not implemented yet... */
     var content = req.body.content;
     var parentId = req.body.parent; 
     var media = req.body.media;
@@ -209,16 +211,15 @@ app.post("/additem", function (req, res) {
             if (req.body.parent) {
                 db.collection("tweets").findOne({id: parentId}, (error, doc) => {
                     if (doc) {
-                        console.log("Original tweet")
-                        content = "RT " + content; //or maybe RT nospace
+                        console.log("this tweet id exists so it is now a reply");
                     } else {
-                        console.log("Retweet");
-                        parentId = id;
+                        console.log("Original tweet, the parentid does not exist");
+                        parentId = "none"; //if no parent id, it'll be default "none"
                     }
                 });
             } else {
-                console.log("Retweet");
-                parentId = id;
+                console.log("Original tweet bc parent id is empty");
+                parentId = "none";
             }
             
             //going to assume valid inputs for images arr..
@@ -235,8 +236,7 @@ app.post("/additem", function (req, res) {
                         {$set: {tweetid: id}},
                         {w:1}, (err,result) => {
                             if (err) {
-                                console.error(new Error("updating img's tweetid FAILED", err))  
-                                //if this then invalid set
+                                console.log("updating img's tweetid FAILED");  
                             } else {
                                 console.log("update img's tweetid a success");
                             }
@@ -307,9 +307,9 @@ app.get("/item/:id", function (request, response) {
                                 username: documentA.username,
                                 content: documentA.content,
                                 timestamp: documentA.timestamp,
-                                parent: documentA.parentId
-                            }, 
-                            media: documentA.media
+                                parent: documentA.parentId,
+                                media: documentA.media
+                            }
                         });
                 } else {
                     response.json({status: "error", error: "NO TWEET FOUND WITH ID"});
@@ -323,6 +323,7 @@ app.get("/item/:id", function (request, response) {
 
 //grading
 app.delete("/item/:id", function (request, response) {
+    
     var id = request.params.id;
     var sessionkey = request.cookies.key;
 
