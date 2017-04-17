@@ -107,19 +107,19 @@ textarea:focus {outline:0;}
     text-align: left;
     width: 100%; 
     padding: 5px;
-    margin: 0 auto;
     margin-top: 10px;
     min-height: 70px;
+    display: block;
 }
 .tweetsubinfo {
     padding-left: 5px;
 }
 
-.tweet img {
-    margin: 5px 5px 0px 5px;
-    content: url("https://cdn4.iconfinder.com/data/icons/mayssam/512/user-128.png");
-    width: 40px;
+.icons img {
+    width: 30px;
+    margin-left: 5px;
 }
+
 
 #tweetButton {
     margin-top: 10px;

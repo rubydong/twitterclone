@@ -50,12 +50,19 @@
 
                 <div id="newsfeed">
                     <div class="tweet" ng-repeat = "tweet in newsfeed.items |orderBy:'-'">
-                        <img src='' align='left'> @{{tweet.username}}
+                        <img src='img/tuser.png' align='left' style="width: 60px; margin: 5px 5px 0px 5px;"> @{{tweet.username}}
                         Id #{{tweet.id}} 
                         {{tweet.timestamp | date:'M/d/yyyy'}}
                         <a href="" class="delete" id= "{{tweet.id}}"></a>
                         <br>
                         {{tweet.content}} 
+                        <br>
+                        <div class="icons">
+                            <img src="img/reply.png">
+                            <img src="img/like.png" style="width: 22px"> 
+                            <img src="img/retweetGray.png">
+                        </div>
+                        
                     </div>
                 </div>
             </div>
@@ -98,17 +105,7 @@
                         parent: $("input[name='parent']").val(),
                         media: $("input[name='media']").val()
                     }));
-                                              
-//                                              
-//                    var searchResults = $http.post("/search",
-//                        JSON.stringify({
-//                        timestamp: $("input[name='timestamp']").val(), 
-//                        limit: $("input[name='limit']").val(), 
-//                        q: $("input[name='q']").val(),
-//                        username: $("input[name='username']").val(),
-//                        following: $("input[name='following']").val()
-//                    }));
-//                                              
+                                                 
                                               
                     addtweet.success(function (data) {
                         if (data.status == "OK") {
@@ -116,11 +113,7 @@
                             var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
                             postToNewsfeed.success(function (d) {
                                 if (d.status == "OK") {
-                                    var timestamp = d.item.timestamp;
-                                    var date = new Date (timestamp);
-                                    var date = (date.getMonth()+1) + "/" +  date.getDate() + "/" + date.getFullYear();
-                                        
-                                    $("#newsfeed").prepend("<div class='tweet'> <img src='' align='left'> <div class='tweetsubinfo'>@" + d.item.username + " Id #" + d.item.id + "   " + date + "</div>" + d.item.content + "</div>");
+                                    window.location ="/"
                                 } else {
                                     $("#newsfeed").prepend("<p> <center>" + data.error);
                                 }
