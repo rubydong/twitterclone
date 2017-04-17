@@ -5,7 +5,9 @@ var nodemailer = require("nodemailer");
 var cookieParser = require("cookie-parser");
 var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
-
+var multer = require('multer');
+var storage = multer.memoryStorage();
+var upload = multer({ storage: storage });
 var app = express();
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -58,6 +60,7 @@ function sendEmail(email, key) {
 
 //grading
 app.post("/adduser", function (req, res) {
+    
     var e_username = req.body.username;
     var e_password = req.body.password;
     var e_email = req.body.email;    
@@ -125,6 +128,7 @@ app.post("/login", function (request, response) {
 
 //front end
 app.get("/logout", function(request, response) {
+    
     request.session = null;
 	var sessionkey = request.cookies.key;
 		db.collection("sessions").remove({"sessionkey": sessionkey},1);
@@ -134,6 +138,7 @@ app.get("/logout", function(request, response) {
 
 //grading
 app.post("/logout", function (request, response) {
+    
         var sessionkey = request.cookies.key;
 
 		db.collection("sessions").remove({"sessionkey": sessionkey}, {w:1}, (err) => {
@@ -154,6 +159,7 @@ app.get("/verify", function (request, response) {
 
 //grading
 app.post("/verify", function (req, res) {
+    
     var e_email = req.body.email;
     var e_key = req.body.key;
     var e_emailkey = "";
@@ -189,25 +195,66 @@ app.post("/verify", function (req, res) {
 
 //grading
 app.post("/additem", function (req, res) {
-    
     var content = req.body.content;
+    var parentId = req.body.parent; 
+    var media = req.body.media;
+    
     var timestamp = new Date().getTime();
     var sessionkey = req.cookies.key;
-
+    console.log(req.body);
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{sessionkey: 1}, (error, doc) => {
 		if (doc) {
             var id = new ObjectID().toHexString();
-
+            
+            if (req.body.parent) {
+                db.collection("tweets").findOne({id: parentId}, (error, doc) => {
+                    if (doc) {
+                        console.log("Original tweet")
+                        content = "RT " + content; //or maybe RT nospace
+                    } else {
+                        console.log("Retweet");
+                        parentId = id;
+                    }
+                });
+            } else {
+                console.log("Retweet");
+                parentId = id;
+            }
+            
+            //going to assume valid inputs for images arr..
+            if (req.body.media) {
+                media = media.replace('[', '');
+                media = media.replace(']', '');
+                media = media.split(',');
+                
+                for (var i = 0; i< media.length; i++) {
+                    media[i] = media[i].trim();
+                    
+                    db.collection("images").update(
+                        {imgid: media[i]}, 
+                        {$set: {tweetid: id}},
+                        {w:1}, (err,result) => {
+                            if (err) {
+                                console.error(new Error("updating img's tweetid FAILED", err))  
+                                //if this then invalid set
+                            } else {
+                                console.log("update img's tweetid a success");
+                            }
+                        });
+                }
+            }
             db.collection("users").update({username: sessionkey},
                 {
                   $push: {
                         "tweets": {
                               "id": id,   
+                              "parentId": parentId,
                               "username": sessionkey,
                               "content": content,
                               "timestamp": timestamp, 
-                              "media": "media",
+                              "media": media,
                               "notes": 0, 
+                              "retweets": 0,
                               "likers": []
                         }
                     } 
@@ -217,11 +264,13 @@ app.post("/additem", function (req, res) {
                     } else {
                         var documentA = {
                             "id": id,   
+                            "parentId": parentId,
                             "username": sessionkey,
                             "content": content,
                             "timestamp": timestamp, 
-                            "media": "media",
-                            "notes": 0,
+                            "media": media,
+                            "notes": 0, 
+                            "retweets": 0,
                             "likers": []
                         };
                         
@@ -242,7 +291,6 @@ app.post("/additem", function (req, res) {
 
 //grading
 app.get("/item/:id", function (request, response) {
-
     var id = request.params.id;
     var sessionkey = request.cookies.key;
     db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
@@ -258,10 +306,10 @@ app.get("/item/:id", function (request, response) {
                                 id: documentA.id,
                                 username: documentA.username,
                                 content: documentA.content,
-                                timestamp: documentA.timestamp
-                            }
-                            
-                            //media: {documentA.media}
+                                timestamp: documentA.timestamp,
+                                parent: documentA.parentId
+                            }, 
+                            media: documentA.media
                         });
                 } else {
                     response.json({status: "error", error: "NO TWEET FOUND WITH ID"});
@@ -273,7 +321,6 @@ app.get("/item/:id", function (request, response) {
     });
 });
 
-
 //grading
 app.delete("/item/:id", function (request, response) {
     var id = request.params.id;
@@ -281,6 +328,16 @@ app.delete("/item/:id", function (request, response) {
 
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1},(error, doc) => {
         if (doc) {
+            
+            
+            db.collection("images").remove({tweetid: id}, (error, result) => {
+                if (result) {
+                    response.json({status: "OK"});
+                } else {
+                    response.json({status: "error", error: "ERROR DELETING FROM IMAGES"});
+                }
+            });
+            
             db.collection("users").update({"username": sessionkey, "verified": "yes"},
                 {
                   $pull: {"tweets": { "id": id}} 
@@ -293,17 +350,18 @@ app.delete("/item/:id", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: "ERROR FINDING TWEET WITH ID"});
                             } else if (document) {
+                                
                                 if (document.username == sessionkey) {
                                     db.collection("tweets").remove({"id": id}, {w:1}, (error, result) => {
                                         if (error) {
-                                            console.error(new Error("ERROR REMOVING TWEET"));
-                                            response.json({status:"error"});
+                                            response.json({status:"error", error: "ERROR REMOVING FROM TWEETS"});
                                         } else {
+                                            console.log("removing id" + id);
                                             response.json({status: "OK"});
                                         }
                                     });
                                 } else {
-                                    response.json({status: "error", error: "DID NOT FIND TWEET WITH ID"});
+                                    response.json({status: "error", error: "YOU CANNOT DELETE TWEETS THAT AREN'T YOURS"});
                                 }
                             } else {
                                 response.json({status: "error", error: "DID NOT FIND TWEET WITH ID"});
@@ -313,8 +371,7 @@ app.delete("/item/:id", function (request, response) {
                     }
             });
         } else {
-            console.error("NO SESSION FOUND");
-            response.json({status: "error"});
+            response.json({status: "error", "error": "USER IS NOT LOGGED IN"});
         }
 	});
 });
@@ -358,14 +415,16 @@ app.get("/profile/:username", function (request, response) {
 
 //front end to determine who the user is in html/js
 app.post("/whoami", function (request, response) {
+    
     if (request.cookies.key)
         response.json ({status:"OK", username: request.cookies.key});
     else 
         response.json ({status: "error", error: "USER IS NOT LOGGED IN"});
 });
 
-//grading
+//grading don't think this is even being used
 function checkConditions(tweets, query, timestamp) {
+    
 	if (tweets.content.indexOf(query) == -1)
 		return false;
 	else if (tweets.timestamp > timestamp)
@@ -377,8 +436,6 @@ function checkConditions(tweets, query, timestamp) {
 //grading
 app.post("/search", function(req, res) {
     
-//    console.log(req.body);
-
 	var timestamp = new Date().getTime();
 	var limit = 25;
 	var query = '';
@@ -404,6 +461,7 @@ app.post("/search", function(req, res) {
     query = ".*(" + query.trim().replace(/\s+/g, "|")+").*";
     
 	db.collection("sessions").findOne({"sessionkey": sessionkey},{"sessionkey": 1}, (error, doc) => {
+        
 		if (doc) {
 			tweetsArr = new Array();
             if (following == 'true' || following == true) {
@@ -540,6 +598,7 @@ app.get("/follow", function (request, response) {
 
 //grading
 app.post("/follow", function (request, response) {
+    
     var sessionkey = request.cookies.key;
     var followbool = true;
 
@@ -608,8 +667,7 @@ app.post("/follow", function (request, response) {
 });
                     
 //grading
-app.get("/user/:username", function (request, response) {
-    
+app.get("/user/:username", function (request, response) { 
     var username = request.params.username;
     var sessionkey = request.cookies.key;
 
@@ -672,7 +730,6 @@ app.post("/user", function (request, response) {
 
 //grading
 app.get("/user/:username/followers", function (request, response) {
-
     var username = request.params.username;
     var sessionkey = request.cookies.key;
 
@@ -696,7 +753,6 @@ app.get("/user/:username/followers", function (request, response) {
 
 //grading
 app.get("/user/:username/following", function (request, response) {
- 
     var username = request.params.username;
     var sessionkey = request.cookies.key;
 
@@ -728,13 +784,9 @@ app.get("/following/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/following.html"));
 });
 
-//frontend - temp like, to be moved to the tweets section later as a heart
-//app.get("/like", function (request, response) {
-//    response.sendFile(path.join(__dirname + "/like.html"));
-//});
-
 //grading
 app.post("/item/:id/like", function (request, response) {
+    
     var likeBool = true; 
     if (request.body.like != null) {
         likeBool = request.body.like;
@@ -809,9 +861,55 @@ app.post("/item/:id/like", function (request, response) {
     });
 });
 
+//front end temp
+app.get("/addmedia", function (request, response) {
+    response.sendFile(path.join(__dirname + "/addmedia.html"));
+});
 
+//grading
+app.post('/addmedia', upload.single('content'), function(request,response){
+    
+    db.collection("sessions").findOne({"sessionkey": request.cookies.key},{sessionkey: 1}, (error, doc) => {
+		if (error) 
+            response.json({status: "error", error: "ERROR UPLOADING FILE"});
+        if (doc) {
+            var imgid =  Math.round(Math.random()*100000 + 1) + request.file.originalname; //in case same file name
+            db.collection("images").insert({
+                  "imgid": imgid,   
+                  "tweetid": "none", 
+                  "type":request.file.mimetype,
+                  "buffer": request.file.buffer,
+            });
+            
+            response.json({status: "OK", id: imgid});
+            
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
+});
 
-
+app.get('/media/:id', function (request, response) {
+    
+    var imgid = request.params.id;
+    
+    db.collection("sessions").findOne({"sessionkey": request.cookies.key},{sessionkey: 1}, (error, doc) => {
+		if (error) 
+            response.json({status: "error", error: "ERROR RETRIEVING FILE"});
+        if (doc) {
+            db.collection("images").findOne({"imgid": imgid}, (error, imgFound) => {
+                if (imgFound) {
+                    console.log(imgFound.imgid + " "+ imgFound.type);
+                    
+                    response.setHeader('Content-Type', imgFound.type);
+                    response.end(imgFound.buffer.buffer);
+                }
+            });
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
+});
 
 app.listen(1337);
 console.log("Server started");

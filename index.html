@@ -37,12 +37,14 @@
                 <form method="POST" action="/additem" id="additemForm">
                     <p><p>
                     <div class="formContent">
-                    <textarea name="content" id="content"></textarea> <br>
+                        <textarea name="content" id="content"></textarea> <br>
                         <span style="text-transform: uppercase;font-size: 11px;">
                             TOTAL WORD COUNT: <span id="count">0</span> 
-                         <br>
-                    <button type="submit" id="tweetButton">Tweet</button>   
-                            </span>
+                        </span><br>
+                    
+                        <input type="text" name="parent" placeholder="parent id"> <br>
+                        <input type="text" name="media" placeholder="[{idname, ...}]"> <br>
+                        <button type="submit" id="tweetButton">Tweet</button>   
                     </div>
                 </form>
 
@@ -91,7 +93,23 @@
             
                 $("#additemForm").submit(function (event) {
                     event.preventDefault(); 
-                    var addtweet = $http.post("/additem", JSON.stringify({content: $("textarea[name='content'").val()}));
+                    var addtweet = $http.post("/additem", JSON.stringify({
+                        content: $("textarea[name='content']").val(), 
+                        parent: $("input[name='parent']").val(),
+                        media: $("input[name='media']").val()
+                    }));
+                                              
+//                                              
+//                    var searchResults = $http.post("/search",
+//                        JSON.stringify({
+//                        timestamp: $("input[name='timestamp']").val(), 
+//                        limit: $("input[name='limit']").val(), 
+//                        q: $("input[name='q']").val(),
+//                        username: $("input[name='username']").val(),
+//                        following: $("input[name='following']").val()
+//                    }));
+//                                              
+                                              
                     addtweet.success(function (data) {
                         if (data.status == "OK") {
                             $("#content").val("");
