@@ -35,6 +35,7 @@
     <script>
         var app = angular.module('myApp', []);    
         app.controller('myCtrl', function($scope, $http) {
+            
             var userInfo = $http.post("/user");
             userInfo.success(function (data) {
                 if (data.status == "OK") {
@@ -45,7 +46,6 @@
                 }
             });
 
-            
             $("#mediaRetrieve").click(function() {
                 var id = $("input[name='id']").val()
                 var mediaRetrieve = $http.get("/media/" + id);
@@ -56,7 +56,6 @@
                         alert(data.error);
                 });
             });
-           
             
         });
         

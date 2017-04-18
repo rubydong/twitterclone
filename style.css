@@ -131,7 +131,7 @@ textarea:focus {outline:0;}
     letter-spacing: 1px;
     font-size:11px;
 }
-#tweetButton:hover {
+#tweetButton:hover, #mediaRetrieve:hover, #mediaUpload:hover {
     color: #999EA8 !important;
     background-color: #FFF !important;
 }

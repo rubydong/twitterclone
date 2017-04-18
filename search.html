@@ -113,7 +113,10 @@
                         limit: $("input[name='limit']").val(), 
                         q: $("input[name='q']").val(),
                         username: $("input[name='username']").val(),
-                        following: $("input[name='following']").val()
+                        following: $("input[name='following']").val(),
+                        rank: $("input[name='rank']").val(),
+                        parent: $("input[name='parent']").val(),
+                        replies: $("input[name='replies']").val()
                     }));
                     searchResults.success(function (data) {
                         if (data.status == "OK")
@@ -167,7 +170,7 @@
                     
                     retweet.success(function (data) {
                         if (data.status == "OK")
-                            alert("liked/unliked!")
+                            alert("retweeted!")
                     });
                 }
             });

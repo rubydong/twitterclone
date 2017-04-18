@@ -968,8 +968,7 @@ app.post("/addmanymedia", upload.any(), function (request, response) {
     });
 });
 
-app.get('/media/:id', function (request, response) {
-    
+app.get('/media/:id', function (request, response) { 
     var imgid = request.params.id;
     
     db.collection("sessions").findOne({"sessionkey": request.cookies.key},{sessionkey: 1}, (error, doc) => {
