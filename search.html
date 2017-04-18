@@ -29,21 +29,33 @@
         
             <div id="tweetsInfo">
                 <div class="tweet" ng-repeat = "tweet in searchResults.items |orderBy:'-'">
-                    <img src='' align='left'> 
+                    <img src='img/tuser.png' align='left' style="width: 60px; margin: 5px 5px 0px 5px;">
                     @{{tweet.username}}
                     Id #{{tweet.id}} 
                     {{tweet.timestamp | date:'M/d/yyyy'}}
                     <br>
                     {{tweet.content}} 
+                    <br>
+                    <div class="icons">
+                        <!-- <img src="img/reply.png"> -->
+                        <img src="img/like.png" style="width: 22px" id="like" ng-click="handleLike(tweet.id, tweet.username)"> {{tweet.likes}}
+                        <img src="img/retweetGray.png" id="retweet" ng-click="handleRetweet(tweet.id, tweet.content)"> {{tweet.retweets}}
+                    </div>
                 </div>
                 
                 <div class="tweet" id='one'>
-                    <img src='' align='left'> 
+                    <img src='img/tuser.png' align='left' style="width: 60px; margin: 5px 5px 0px 5px;">
                     @{{itemResult.item.username}}
                     Id #{{itemResult.item.id}} 
                     {{itemResult.item.timestamp | date:'M/d/yyyy'}}
                     <br>
                     {{itemResult.item.content}} 
+                    <br>
+                    <div class="icons">
+                        <!-- <img src="img/reply.png"> -->
+                        <img src="img/like.png" style="width: 22px" id="like" ng-click="handleLike(itemResult.item.id, itemResult.item.username)"> {{itemResult.item.likes}}
+                        <img src="img/retweetGray.png" id="retweet" ng-click="handleRetweet(itemResult.item.id, itemResult.item.content)"> {{itemResult.item.retweets}}
+                    </div>
                 </div>
             </div>
             
@@ -73,7 +85,7 @@
         
         <script>
             var app = angular.module('myApp', []);
-            app.controller('myCtrl', function($scope, $http) {
+            app.controller('myCtrl', function($scope, $http, $window) {
                 $("#one").hide();
                 $("#logoutLink").click(function(event) {
                     var logout = $http.get("/logout");
@@ -83,7 +95,7 @@
                     if (data.status == "OK") {
                         $scope.whoami = data;
                         var newlocation = "window.location='/profile/" + $scope.whoami.username + "'";
-                        document.getElementById('profileClick').setAttribute('href',"/profile/" + data.user.username);
+                        document.getElementById('profileClick').setAttribute('href', '/profile/' + $scope.whoami.username);
                     } else 
                         window.location = "/login";
                 });
@@ -122,6 +134,38 @@
                             $(".tweetsInfo").html(data.error);
                     });
                 });
+                
+                
+                $scope.handleLike = function(id, username){
+                    var likedAlready = $http.post("/didilike", 
+                    JSON.stringify({ id: id, user: username}));
+                    likedAlready.success(function (data) {
+                        if (data.status == "OK") {
+                            var likePost = $http.post("/item/"+id+"/like",  
+                            JSON.stringify({like: !data.liked}));
+                            likePost.success(function (data) {
+                                if (data.status == "OK")
+                                    alert("liked/unliked!")
+                                else
+                                    alert(data.error);
+                            });
+                        }
+                    });
+                }
+                
+                $scope.handleRetweet = function (parent, content) {
+                    var retweet = $http.post("/additem", 
+                    JSON.stringify({
+                        retweetParent: parent, 
+                        content: "RT " + content,
+                        retweetBool: true
+                    }));
+                    
+                    retweet.success(function (data) {
+                        if (data.status == "OK")
+                            alert("liked/unliked!")
+                    });
+                }
             });
         
         </script>
