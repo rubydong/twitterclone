@@ -121,7 +121,7 @@ textarea:focus {outline:0;}
 }
 
 
-#tweetButton {
+#tweetButton, .iconButton {
     margin-top: 10px;
     border:1px solid #D4D4D4; 
     border-radius: 5px; 
@@ -129,6 +129,7 @@ textarea:focus {outline:0;}
     color: #798AA8 !important;
     text-transform: uppercase;
     letter-spacing: 1px;
+    font-size:11px;
 }
 #tweetButton:hover {
     color: #999EA8 !important;

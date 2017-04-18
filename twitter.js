@@ -193,6 +193,7 @@ app.post("/verify", function (req, res) {
     }
 });
 
+
 //grading
 app.post("/additem", function (req, res) {
     
@@ -201,6 +202,22 @@ app.post("/additem", function (req, res) {
     var parent = req.body.parent; 
     var media = req.body.media;
     
+    //!!!!!!!!//
+    var retweetParent = req.body.retweetParent;
+    var retweetBool = req.body.retweetBool;
+    
+    if (retweetBool) {
+        db.collection("tweets").update(
+            {"id": retweetParent}, 
+            { $inc: {retweets: 1}}
+        );        
+                                       
+         db.collection("users").update(
+            {username: req.cookies.key, "tweets.id": retweetParent}, 
+            {$inc: {"tweets.$.retweets":1}}
+        ) 
+    }
+         /////!!!!!!//
     var timestamp = new Date().getTime();
     var sessionkey = req.cookies.key;
     console.log(req.body);
@@ -296,6 +313,7 @@ app.post("/additem", function (req, res) {
 
 //grading
 app.get("/item/:id", function (request, response) {
+    
     var id = request.params.id;
     var sessionkey = request.cookies.key;
     db.collection("sessions").findOne({"sessionkey": sessionkey}, {sessionkey: 1}, (error, doc) => {
@@ -337,11 +355,7 @@ app.delete("/item/:id", function (request, response) {
             
             
             db.collection("images").remove({tweetid: id}, (error, result) => {
-                if (result) {
-                    response.json({status: "OK"});
-                } else {
-                    response.json({status: "error", error: "ERROR DELETING FROM IMAGES"});
-                }
+               
             });
             
             db.collection("users").update({"username": sessionkey, "verified": "yes"},
@@ -394,9 +408,15 @@ app.post("/item", function (request, response) {
                     status: "OK",
                     item: {
                         id: document.id,
+                        parent: document.parent,
                         username: document.username,
                         content: document.content,
-                        timestamp: document.timestamp
+                        timestamp: document.timestamp,
+                        media: document.media,
+                        likes: document.likes,
+                        likers: document.likers,
+                        retweetParent:document.retweetParent,
+                        retweets: document.retweets
                     }
                 });
             } else {
@@ -491,7 +511,9 @@ app.post("/search", function(req, res) {
                                                 id: tweets[i].id,
                                                 username: tweets[i].username,
                                                 content: tweets[i].content,
-                                                timestamp: tweets[i].timestamp
+                                                timestamp: tweets[i].timestamp,
+                                                likes: tweets[i].likes,
+                                                retweets: tweets[i].retweets
                                             });
                                             count1++;
                                         }
@@ -525,7 +547,9 @@ app.post("/search", function(req, res) {
                                                     id: tweets[j].id,
                                                     username: tweets[j].username,
                                                     content: tweets[j].content,
-                                                    timestamp: tweets[j].timestamp
+                                                    timestamp: tweets[j].timestamp,
+                                                    likes: tweets[j].likes,
+                                                retweets: tweets[j].retweets
                                                 });
                                                 count2++;
                                             }
@@ -548,14 +572,18 @@ app.post("/search", function(req, res) {
                             var tweets = user.tweets;
                             var send3 = new Array();
                             var count3 = 0;
+                            //console.log("QUERY IS... " + query);
                             for (var j = 0; j < tweets.length && count3 < limit; j++) {
+                                //console.log(tweets[j]);
                                 if ( (tweets[j].content.match(query) != null) && 
                                      (tweets[j].timestamp <= timestamp)) {
                                     send3.push({
                                         id: tweets[j].id,
                                         username: tweets[j].username,
                                         content: tweets[j].content,
-                                        timestamp: tweets[j].timestamp
+                                        timestamp: tweets[j].timestamp,
+                                        likes: tweets[j].likes,
+                                        retweets: tweets[j].retweets
                                     });
                                     count3++;
                                 }
@@ -582,7 +610,9 @@ app.post("/search", function(req, res) {
                                         id: val[i].id,
                                         username: val[i].username,
                                         content: val[i].content,
-                                        timestamp: val[i].timestamp
+                                        timestamp: val[i].timestamp,
+                                        likes: val[i].likes,
+                                        retweets: val[i].retweets
                                     });
                                     count4++;
                                 
@@ -790,9 +820,25 @@ app.get("/following/:username", function (request, response) {
     response.sendFile(path.join(__dirname + "/following.html"));
 });
 
+//front-end to check whether user liked the tweet or not
+app.post("/didilike", function(request, response) {
+    var id = request.body.id;
+    var user = request.body.user;
+    db.collection("tweets").findOne({"id": id}, (error, doc) => {
+        if (doc) {
+            var liked = false;
+            console.log(doc.likers);
+            for (var i = 0; i < doc.likers.length; i++) {
+                if (doc.likers[i] == user)
+                    liked = true;       
+            }
+            response.json({status: "OK", liked: liked})
+        }
+    });
+});
+
 //grading
 app.post("/item/:id/like", function (request, response) {
-    
     var likeBool = true; 
     if (request.body.like != null) {
         likeBool = request.body.like;
@@ -873,12 +919,12 @@ app.get("/addmedia", function (request, response) {
 });
 
 //grading
-app.post('/addmedia', upload.single('content'), function(request,response){
-    
+app.post('/addmedia', upload.single('content'), function(request,response){  
     db.collection("sessions").findOne({"sessionkey": request.cookies.key},{sessionkey: 1}, (error, doc) => {
 		if (error) 
             response.json({status: "error", error: "ERROR UPLOADING FILE"});
         if (doc) {
+            
             var imgid =  Math.round(Math.random()*100000 + 1) + request.file.originalname; //in case same file name
             db.collection("images").insert({
                   "imgid": imgid,   
@@ -888,6 +934,33 @@ app.post('/addmedia', upload.single('content'), function(request,response){
             });
             
             response.json({status: "OK", id: imgid});
+            
+        } else {
+            response.json({status: "error", error: "USER IS NOT LOGGED IN"});
+        }
+    });
+});
+
+//front end to add multiple media !!!!! new
+app.post("/addmanymedia", upload.any(), function (request, response) {
+    db.collection("sessions").findOne({"sessionkey": request.cookies.key},{sessionkey: 1}, (error, doc) => {
+		if (error) 
+            response.json({status: "error", error: "ERROR UPLOADING FILE"});
+        if (doc) {
+            var idArr = [];
+            
+            for (var i = 0; i < request.files.length; i++) {
+                var imgid =  Math.round(Math.random()*100000 + 1) + request.files[i].originalname; //in case same file name
+                db.collection("images").insert({
+                      "imgid": imgid,   
+                      "tweetid": "none", 
+                      "type":request.files[i].mimetype,
+                      "buffer": request.files[i].buffer,
+                });
+                idArr.push(imgid);
+            }
+            
+            response.json({status: "OK", ids: idArr});
             
         } else {
             response.json({status: "error", error: "USER IS NOT LOGGED IN"});

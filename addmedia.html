@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html>
     <head>
+         <link rel="stylesheet" type="text/css" href="materialize/css/materialize.css">
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
     </head>
     <body>
        
-        <form method="POST" action="/addmedia" enctype="multipart/form-data">
-        Media: <input type="file" name="content"> <br>
-        <input type="submit">
+        <form method="POST" action="/addmanymedia" enctype="multipart/form-data">
+        <h2>Add media</h2>
+        Media: <input type="file" name="content" multiple> <br>
+        <button type="submit" id="tweetButton">Upload</button> 
         </form>
     </body>
 </html>
