@@ -121,7 +121,7 @@ textarea:focus {outline:0;}
 }
 
 
-#tweetButton, .iconButton {
+#tweetButton, #mediaRetrieve, #mediaUpload {
     margin-top: 10px;
     border:1px solid #D4D4D4; 
     border-radius: 5px; 

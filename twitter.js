@@ -913,7 +913,7 @@ app.post("/item/:id/like", function (request, response) {
     });
 });
 
-//front end temp
+//front end 
 app.get("/addmedia", function (request, response) {
     response.sendFile(path.join(__dirname + "/addmedia.html"));
 });
@@ -982,6 +982,8 @@ app.get('/media/:id', function (request, response) {
                     
                     response.setHeader('Content-Type', imgFound.type);
                     response.end(imgFound.buffer.buffer);
+                } else {
+                    response.json({status: "error", error: "IMG IS NOT FOUND"});
                 }
             });
         } else {
