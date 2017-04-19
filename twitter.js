@@ -3,6 +3,9 @@ var path = require("path");
 var bodyParser = require("body-parser");
 var cookieParser = require("cookie-parser");
 var nodeMailer = require("nodemailer");
+var multer = require("multer");
+var storage = multer.memoryStorage();
+var upload = multer({storage: storage});
 
 var app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -19,11 +22,13 @@ MongoClient.connect("mongodb://localhost:27017/twitter", function (error, databa
         return console.error(error);
     }
     db = database;
-    db.createIndex("users", {username: 1, email: 1, password: 1, verified: 1, following: 1}, {background: true}, function () {
+    db.createIndex("users", {username: 1, email: 1, password: 1, verified: 1, following: 1, "tweets._id": 1}, {background: true}, function () {
         db.createIndex("users", {username: 1}, {background: true}, function () {
             db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
-                db.createIndex("sessions", {key: 1}, {background: true}, function () {
-                    console.log("Connected to MongoDB with indexes created");
+                db.createIndex("media", {_id: 1, tweetId: 1}, {background: true}, function () {
+                    db.createIndex("sessions", {key: 1}, {background: true}, function () {
+                        console.log("Connected to MongoDB with indexes created");
+                    });
                 });
             });
         });
@@ -172,6 +177,8 @@ app.post("/verify", function (request, response) {
                             response.json({status: "OK"});
                         }
                     });
+                } else {
+                    response.json({status: "error", error: "INCORRECT KEY"});
                 }
             } else {
                 response.json({status: "error", error: "EMAIL NOT FOUND"});
@@ -185,6 +192,17 @@ app.post("/verify", function (request, response) {
 //Grading script
 app.post("/additem", function (request, response) {
     var content = request.body.content;
+    var parent = request.body.parent ? request.body.parent : "none";
+    var media;
+    if (request.body.media) {
+        if (typeof request.body.media === "string") {
+            media = request.body.media.replace("[", "").replace("]", "").split(",");
+        } else {
+            media = request.body.media;
+        }
+    } else {
+        media = [];
+    }
     var sessionKey = request.cookies.key;
 
     db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
@@ -194,9 +212,15 @@ app.post("/additem", function (request, response) {
             var id = new ObjectID().toHexString();
             var tweet = {
                 _id: id,
+                parent: parent,
                 username: sessionKey,
                 content: content,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                media: media,
+                likes: 0,
+                likers: [],
+                retweets: 0,
+                retweetParent: "none"
             };
             db.collection("users").updateOne({username: sessionKey}, {$push: {tweets: tweet}}, function (error) {
                 if (error) {
@@ -206,7 +230,20 @@ app.post("/additem", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
-                            response.json({status: "OK", id: id});
+                            if (media.length > 0) {
+                                media.forEach(function (mediaId, index, array) {
+                                    db.collection("media").updateOne({_id: mediaId.trim()}, {$set: {tweetId: id}}, function (error) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        }
+                                        if (index === array.length - 1) {
+                                            response.json({status: "OK", id: id});
+                                        }
+                                    });
+                                });
+                            } else {
+                                response.json({status: "OK", id: id});
+                            }
                         }
                     });
                 }
@@ -245,12 +282,13 @@ app.post("/item", function (request, response) {
 //Grading script
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
+    var mcKey = id + "item";
 
     db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (document) {
-            memcached.get(id, function (error, data) {
+            memcached.get(mcKey, function (error, data) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else if (data) {
@@ -264,10 +302,12 @@ app.get("/item/:id", function (request, response) {
                                 id: doc._id,
                                 username: doc.username,
                                 content: doc.content,
-                                timestamp: doc.timestamp
+                                timestamp: doc.timestamp,
+                                parent: doc.parent,
+                                media: doc.media
                             };
                             var data = {status: "OK", item: tweet};
-                            memcached.set(id, data, 0, function (error) {
+                            memcached.set(mcKey, data, 0, function (error) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else {
@@ -299,15 +339,31 @@ app.delete("/item/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
-                    db.collection("tweets").remove({_id: id, username: sessionKey}, function (error, result) {
+                    db.collection("tweets").findOneAndDelete({_id: id, username: sessionKey}, function (error, doc) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
-                        } else if (result.result.n === 1) {
-                            memcached.del(id, function (error) {
+                        } else if (doc) {
+                            var media = doc.media;
+                            db.collection("media").remove({tweetId: id}, function (error) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else {
-                                    response.json({status: "OK"});
+                                    memcached.del(id + "item", function (error) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        } else {
+                                            media.forEach(function (mediaId, index, array) {
+                                                memcached.del(mediaId + "media", function (error) {
+                                                    if (error) {
+                                                        response.json({status: "error", error: error.toString()});
+                                                    }
+                                                    if (index === array.length - 1) {
+                                                        response.json({status: "OK"});
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    });
                                 }
                             });
                         } else {
@@ -322,12 +378,60 @@ app.delete("/item/:id", function (request, response) {
     });
 });
 
+function filterTweet(tweet, parent, replies) {
+    if (parent === "none" && (replies === true || replies === "true")) {
+        return true;
+    }
+    if (parent === "none" && (replies === false || replies === "false")) {
+        if (tweet.parent === "none") {
+            return true;
+        }
+    }
+    if (parent !== "none" && (replies === true || replies === "true")) {
+        if (tweet.parent === parent) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function compareInterest(a, b) {
+    var sum_a = a.likes + a.retweets;
+    var sum_b = b.likes + b.retweets;
+
+    if (sum_a > sum_b) {
+        return 1;
+    }
+    if (sum_a < sum_b) {
+        return -1;
+    }
+    return 0;
+}
+
+function compareTime(a, b) {
+    if (a.timestamp > b.timestamp) {
+        return 1;
+    }
+    if (a.timestamp < b.timestamp) {
+        return -1;
+    }
+    return 0;
+}
+
+function rankTweets(tweets, rank) {
+    if (rank === "interest") {
+        tweets.sort(compareInterest);
+    } else if (rank === "time") {
+        tweets.sort(compareTime);
+    }
+    return tweets;
+}
+
 //Front-end
 app.get("/search", function (request, response) {
     response.sendFile(path.join(__dirname + "/search.html"));
 });
 
-//Grading script
 app.post("/search", function (request, response) {
     //Assign defaults
     var timestamp = Date.now();
@@ -335,6 +439,9 @@ app.post("/search", function (request, response) {
     var query = "";
     var username = "";
     var following = true;
+    var parent = "none";
+    var replies = true;
+    var rank = "interest";
 
     //Assign values based on request
     if (request.body.timestamp) {
@@ -353,10 +460,20 @@ app.post("/search", function (request, response) {
     if (request.body.hasOwnProperty("following")) {
         following = request.body.following;
     }
+    if (request.body.parent) {
+        parent = request.body.parent;
+    }
+    if (request.body.hasOwnProperty("replies")) {
+        replies = request.body.replies;
+    }
+    if (request.body.rank) {
+        rank = request.body.rank;
+    }
 
+    // regex to break up query into separate tokens
     var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
     var sessionKey = request.cookies.key;
-    var mcKey = following === true || following === "true" ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username].toString() : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username].toString(); //Memcached key
+    var mcKey = following === true || following === "true" ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString() : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString(); //Memcached key
 
     db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
         if (error) {
@@ -381,17 +498,24 @@ app.post("/search", function (request, response) {
                                             var tweets = followedUser.tweets;
                                             var followingUsername = [];
 
-                                            for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
-                                                var tweet = tweets[i]
-                                                if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
-                                                    followingUsername.push({
-                                                        id: tweet._id,
-                                                        username: tweet.username,
-                                                        content: tweet.content,
-                                                        timestamp: tweet.timestamp
-                                                    });
+                                            if (!(parent !== "none" && (replies === false || replies === "false"))) {
+                                                for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
+                                                    var tweet = tweets[i]
+                                                    if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                                        followingUsername.push({
+                                                            id: tweet._id,
+                                                            username: tweet.username,
+                                                            content: tweet.content,
+                                                            timestamp: tweet.timestamp,
+                                                            parent: tweet.parent,
+                                                            retweets: tweet.retweets,
+                                                            likes: tweet.likes
+                                                        });
+                                                    }
                                                 }
+                                                followingUsername = rankTweets(followingUsername, rank);
                                             }
+
                                             var data = {status: "OK", items: followingUsername};
                                             if (followingUsername.length === limit) {
                                                 memcached.set(mcKey, data, 0, function (error) {
@@ -423,21 +547,28 @@ app.post("/search", function (request, response) {
                                         } else if (followees) {
                                             var followingNoUsername = [];
 
-                                            for (var i = 0; i < followees.length && followingNoUsername.length < limit; i++) {
-                                                var tweets = followees[i].tweets;
+                                            if (!(parent !== "none" && (replies === false || replies === "false"))) {
+                                                for (var i = 0; i < followees.length && followingNoUsername.length < limit; i++) {
+                                                    var tweets = followees[i].tweets;
 
-                                                for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
-                                                    var tweet = tweets[j];
-                                                    if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
-                                                        followingNoUsername.push({
-                                                            id: tweet._id,
-                                                            username: tweet.username,
-                                                            content: tweet.content,
-                                                            timestamp: tweet.timestamp
-                                                        });
+                                                    for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
+                                                        var tweet = tweets[j];
+                                                        if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                                            followingNoUsername.push({
+                                                                id: tweet._id,
+                                                                username: tweet.username,
+                                                                content: tweet.content,
+                                                                timestamp: tweet.timestamp,
+                                                                parent: tweet.parent,
+                                                                retweets: tweet.retweets,
+                                                                likes: tweet.likes
+                                                            });
+                                                        }
                                                     }
                                                 }
+                                                followingNoUsername = rankTweets(followingNoUsername, rank);
                                             }
+
                                             var data = {status: "OK", items: followingNoUsername};
                                             if (followingNoUsername.length === limit) {
                                                 memcached.set(mcKey, data, 0, function (error) {
@@ -468,17 +599,24 @@ app.post("/search", function (request, response) {
                                     var tweets = searchedUser.tweets;
                                     var notFollowingUsername = [];
 
-                                    for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
-                                        var tweet = tweets[i];
-                                        if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp) {
-                                            notFollowingUsername.push({
-                                                id: tweet._id,
-                                                username: tweet.username,
-                                                content: tweet.content,
-                                                timestamp: tweet.timestamp
-                                            });
+                                    if (!(parent !== "none" && (replies === false || replies === "false"))) {
+                                        for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
+                                            var tweet = tweets[i];
+                                            if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                                notFollowingUsername.push({
+                                                    id: tweet._id,
+                                                    username: tweet.username,
+                                                    content: tweet.content,
+                                                    timestamp: tweet.timestamp,
+                                                    parent: tweet.parent,
+                                                    retweets: tweet.retweets,
+                                                    likes: tweet.likes
+                                                });
+                                            }
                                         }
+                                        notFollowingUsername = rankTweets(notFollowingUsername, rank);
                                     }
+
                                     var data = {status: "OK", items: notFollowingUsername};
                                     if (notFollowingUsername.length === limit) {
                                         memcached.set(mcKey, data, 0, function (error) {
@@ -496,21 +634,30 @@ app.post("/search", function (request, response) {
                                 }
                             });
                         } else {
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).toArray(function (error, tweets) {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
                                     var notFollowingNoUsername = [];
 
-                                    for (var i = 0; i < tweets.length; i++) {
-                                        var tweet = tweets[i];
-                                        notFollowingNoUsername.push({
-                                            id: tweet._id,
-                                            username: tweet.username,
-                                            content: tweet.content,
-                                            timestamp: tweet.timestamp
-                                        });
+                                    if (!(parent !== "none" && (replies === false || replies === "false"))) {
+                                        for (var i = 0; i < tweets.length && notFollowingNoUsername.length < limit; i++) {
+                                            var tweet = tweets[i];
+                                            if (filterTweet(tweet, parent, replies)) {
+                                                notFollowingNoUsername.push({
+                                                    id: tweet._id,
+                                                    username: tweet.username,
+                                                    content: tweet.content,
+                                                    timestamp: tweet.timestamp,
+                                                    parent: tweet.parent,
+                                                    retweets: tweet.retweets,
+                                                    likes: tweet.likes
+                                                });
+                                            }
+                                        }
+                                        notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
                                     }
+
                                     var data = {status: "OK", items: notFollowingNoUsername};
                                     if (notFollowingNoUsername.length === limit) {
                                         memcached.set(mcKey, data, 0, function (error) {
@@ -737,21 +884,15 @@ app.post("/follow", function (request, response) {
             response.json({status: "error", error: error.toString()});
         } else if (document) {
             if (follow === true || follow === "true") {
-                db.collection("users").findOne({username: followee}, function (error, doc) {
+                db.collection("users").findOneAndUpdate({username: followee}, {$addToSet: {followers: follower}}, function (error, doc) {
                     if (error) {
                         response.json({status: "error", error: error.toString()});
                     } else if (doc) {
-                        db.collection("users").updateOne({username: followee}, {$addToSet: {followers: follower}}, function (error) {
+                        db.collection("users").updateOne({username: follower}, {$addToSet: {following: followee}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: follower}, {$addToSet: {following: followee}}, function (error) {
-                                    if (error) {
-                                        response.json({status: "error", error: error.toString()});
-                                    } else {
-                                        response.json({status: "OK"});
-                                    }
-                                });
+                                response.json({status: "OK"});
                             }
                         });
                     } else {
@@ -759,15 +900,73 @@ app.post("/follow", function (request, response) {
                     }
                 });
             } else {
-                db.collection("users").findOne({username: followee}, function (error, doc) {
+                db.collection("users").findOneAndUpdate({username: followee}, {$pull: {followers: follower}}, function (error, doc) {
                     if (error) {
                         response.json({status: "error", error: error.toString()});
                     } else if (doc) {
-                        db.collection("users").updateOne({username: followee}, {$pull: {followers: follower}}, function (error) {
+                        db.collection("users").updateOne({username: follower}, {$pull: {following: followee}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: follower}, {$pull: {following: followee}}, function (error) {
+                                response.json({status: "OK"});
+                            }
+                        });
+                    } else {
+                        response.json({status: "error", error: followee + " NOT FOUND"});
+                    }
+                });
+            }
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Grading script
+app.post("/item/:id/like", function (request, response) {
+    var id = request.params.id;
+    var like = true;
+    if (request.body.hasOwnProperty("like")) {
+        like = request.body.like;
+    }
+    var liker = request.cookies.key;
+
+    db.collection("sessions").findOne({key: liker}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            db.collection("tweets").findOne({_id: id}, function (error, doc) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (doc) {
+                    var tweeter = doc.username;
+                    var likers = doc.likers;
+                    var alreadyLiked = false;
+
+                    if (likers.includes(liker)) {
+                        alreadyLiked = true;
+                    }
+
+                    if (!alreadyLiked && (like === true || like === "true")) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1}, $addToSet: {likers: liker}}, function (error) {
+                            if (error) {
+                                response.json({status: "error", error: error.toString()});
+                            } else {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": 1}, $addToSet: {"tweets.$.likers": liker}}, function (error) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json({status: "OK"});
+                                    }
+                                });
+                            }
+                        });
+                    } else if (alreadyLiked && (like === false || like = "false")) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1}, $pull: {likers: liker}}, function (error) {
+                            if (error) {
+                                response.json({status: "error", error: error.toString()});
+                            } else {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": -1}, $pull: {"tweets.$.likers": liker}}, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
@@ -777,10 +976,77 @@ app.post("/follow", function (request, response) {
                             }
                         });
                     } else {
-                        response.json({status: "error", error: followee + " NOT FOUND"});
+                        response.json({status: "error", error: "LIKING TWEET ALREADY LIKED OR UNLIKING TWEET NOT ALREADY LIKED"});
                     }
-                });
-            }
+                } else {
+                    response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
+                }
+            });
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Front-end
+app.get("/addmedia", function (request, response) {
+    response.sendFile(path.join(__dirname + "/addmedia.html"));
+});
+
+//Grading script
+app.post("/addmedia", upload.single("content"), function (request, response) {
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            var id = new ObjectID().toHexString();
+            db.collection("media").insert({
+                _id: id,
+                tweetId: "none",
+                type: request.file.mimetype,
+                buffer: request.file.buffer
+            });
+            response.json({status: "OK", id: id});
+        } else {
+            response.json({status: "error", error: "NOT LOGGED IN"});
+        }
+    });
+});
+
+//Grading script
+app.get("/media/:id", function (request, response) {
+    var id = request.params.id;
+    var mcKey = id + "media";
+
+    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
+        } else if (document) {
+            memcached.get(mcKey, function (error, data) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (data) {
+                    response.setHeader("Content-Type", data.type);
+                    response.end(data.buffer.buffer);
+                } else {
+                    db.collection("media").findOne({_id: id}, function (error, media) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else if (media) {
+                            memcached.set(mcKey, media, 0, function (error) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
+                                } else {
+                                    response.setHeader("Content-Type", media.type);
+                                    response.end(media.buffer.buffer);
+                                }
+                            });
+                        } else {
+                            response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
+                        }
+                    });
+                }
+            });
         } else {
             response.json({status: "error", error: "NOT LOGGED IN"});
         }
