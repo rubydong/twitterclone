@@ -518,7 +518,7 @@ app.post("/search", function (request, response) {
 
                                             if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                                 for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
-                                                    var tweet = tweets[i]
+                                                    var tweet = tweets[i].tweets;
                                                     if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
                                                         followingUsername.push({
                                                             id: tweet._id,
@@ -576,7 +576,7 @@ app.post("/search", function (request, response) {
                                                     var tweets = followees[i].tweets;
 
                                                     for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
-                                                        var tweet = tweets[j];
+                                                        var tweet = tweets[j].tweets;
                                                         if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
                                                             followingNoUsername.push({
                                                                 id: tweet._id,
@@ -632,7 +632,7 @@ app.post("/search", function (request, response) {
 
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                         for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
-                                            var tweet = tweets[i];
+                                            var tweet = tweets[i].tweets;
                                             if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
                                                 notFollowingUsername.push({
                                                     id: tweet._id,
@@ -672,8 +672,8 @@ app.post("/search", function (request, response) {
                             });
                         } else {
                             // db.tweets.find().sort({weight:-1}).pretty()
-                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
+                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
@@ -681,7 +681,7 @@ app.post("/search", function (request, response) {
 
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                         for (var i = 0; i < tweets.length && notFollowingNoUsername.length < limit; i++) {
-                                            var tweet = tweets[i];
+                                            var tweet = tweets[i].tweets;
                                             if (filterTweet(tweet, parent, replies)) {
                                                 notFollowingNoUsername.push({
                                                     id: tweet._id,
