@@ -194,7 +194,7 @@ app.post("/verify", function (request, response) {
 
 //Grading script
 app.post("/additem", function (request, response) {
-    console.log("adding item");
+    // console.log("adding item");
     var content = request.body.content;
     var parent = request.body.parent ? request.body.parent : "none";
     var media;
@@ -442,7 +442,7 @@ app.get("/search", function (request, response) {
 });
 
 app.post("/search", function (request, response) {
-    console.time("search");
+    // console.time("search");
     //Assign defaults
     var timestamp = Date.now();
     var limit = 25;
@@ -540,14 +540,14 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
-                                                        console.log("following: true username: true");
-                                                        console.timeEnd("search");
+                                                        // console.log("following: true username: true");
+                                                        // console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
-                                                console.log("following: true username: true");
-                                                console.timeEnd("search");
+                                                // console.log("following: true username: true");
+                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
@@ -555,7 +555,7 @@ app.post("/search", function (request, response) {
                                         }
                                     });
                                 } else {
-                                    console.timeEnd("search");
+                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
@@ -599,19 +599,19 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
-                                                        console.log("following: true username: false");
-                                                        console.timeEnd("search");
+                                                        // console.log("following: true username: false");
+                                                        // console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
-                                                console.log("following: true username: false");
-                                                console.timeEnd("search");
+                                                // console.log("following: true username: false");
+                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
-                                            console.log("following: true username: false");
-                                            console.timeEnd("search");
+                                            // console.log("following: true username: false");
+                                            // console.timeEnd("search");
                                             response.json({status: "OK", items: []});
                                         }
                                     });
@@ -654,19 +654,19 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
-                                                console.log("following: false username: true");
-                                                console.timeEnd("search");
+                                                // console.log("following: false username: true");
+                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
-                                        console.log("following: false username: true");
-                                        console.timeEnd("search");
+                                        // console.log("following: false username: true");
+                                        // console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
-                                    console.log("following: false username: true");
-                                    console.timeEnd("search");
+                                    // console.log("following: false username: true");
+                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
@@ -703,19 +703,19 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
-                                                console.log("following: false username: false");
-                                                console.timeEnd("search");
+                                                // console.log("following: false username: false");
+                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
-                                        console.log("following: false username: false");
-                                        console.timeEnd("search");
+                                        // console.log("following: false username: false");
+                                        // console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
-                                    console.log("following: false username: false");
-                                    console.timeEnd("search");
+                                    // console.log("following: false username: false");
+                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
