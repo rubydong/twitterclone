@@ -195,19 +195,19 @@ app.post("/verify", function (request, response) {
 //Grading script
 app.post("/additem", function (request, response) {
     // console.log("adding item");
+    var sessionKey = request.cookies.key;
     var content = request.body.content;
     var parent = request.body.parent ? request.body.parent : "none";
-    var media;
+    var media = [];
+
+    console.log(request.body.media);
     if (request.body.media) {
         if (typeof request.body.media === "string") {
             media = request.body.media.replace("[", "").replace("]", "").split(",");
         } else {
             media = request.body.media;
         }
-    } else {
-        media = [];
     }
-    var sessionKey = request.cookies.key;
 
     db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
         if (error) {
