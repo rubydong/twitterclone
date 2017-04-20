@@ -223,6 +223,7 @@ app.post("/additem", function (request, response) {
                 likes: 0,
                 likers: [],
                 retweets: 0,
+                weight: 0,
                 retweetParent: "none"
             };
             db.collection("users").updateOne({username: sessionKey}, {$push: {tweets: tweet}}, function (error) {
@@ -440,6 +441,7 @@ app.get("/search", function (request, response) {
 });
 
 app.post("/search", function (request, response) {
+    console.time("search");
     //Assign defaults
     var timestamp = Date.now();
     var limit = 25;
@@ -475,9 +477,9 @@ app.post("/search", function (request, response) {
     }
     if (request.body.rank) {
         rank = request.body.rank;
-	console.log("rank is", rank);
+	// console.log("rank is", rank);
     } else {
-	console.log("rank is", rank);
+	// console.log("rank is", rank);
     }
 
     // regex to break up query into separate tokens
@@ -501,11 +503,16 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").findOne({username: username}, function (error, followedUser) {
+                                        // db.tweets.find().sort({weight:-1}).pretty()
+                                        //db.users.aggregate( { $match: { username: "newuser1"}}, { $unwind: '$tweets' }, { $sort : { 'tweets.weight': -1}})
+
+                                    db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1}}, {$limit: limit}, function (error, followedUser) {
+                                    // db.collection("users").findOne({username: username}, function (error, followedUser) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else if (followedUser) {
-                                            var tweets = followedUser.tweets;
+                                            // var tweets = followedUser.tweets;
+                                            var tweets = followedUser;
                                             var followingUsername = [];
 
                                             if (!(parent !== "none" && (replies === false || replies === "false"))) {
@@ -523,7 +530,7 @@ app.post("/search", function (request, response) {
                                                         });
                                                     }
                                                 }
-                                                followingUsername = rankTweets(followingUsername, rank);
+                                                // followingUsername = rankTweets(followingUsername, rank);
                                             }
 
                                             var data = {status: "OK", items: followingUsername};
@@ -532,10 +539,12 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
+                                                        console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
+                                                console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
@@ -543,6 +552,7 @@ app.post("/search", function (request, response) {
                                         }
                                     });
                                 } else {
+                                    console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
@@ -551,7 +561,8 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").find({username: {$in: loggedInUser.followinglist}}).toArray(function (error, followees) {
+                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1}}, {$limit: limit}).toArray(function (error, followees)) {
+                                    // db.collection("users").find({username: {$in: loggedInUser.followinglist}}).toArray(function (error, followees) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else if (followees) {
@@ -576,7 +587,7 @@ app.post("/search", function (request, response) {
                                                         }
                                                     }
                                                 }
-                                                followingNoUsername = rankTweets(followingNoUsername, rank);
+                                                // followingNoUsername = rankTweets(followingNoUsername, rank);
                                             }
 
                                             var data = {status: "OK", items: followingNoUsername};
@@ -585,13 +596,16 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
+                                                        console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
+                                                console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
+                                            console.timeEnd("search");
                                             response.json({status: "OK", items: []});
                                         }
                                     });
@@ -602,11 +616,12 @@ app.post("/search", function (request, response) {
                         }
                     } else {
                         if (username) {
-                            db.collection("users").findOne({username: username}, function (error, searchedUser) {
+                            db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1}}, {$limit: limit}, function (error, searchedUser) {
+                            // db.collection("users").findOne({username: username}, function (error, searchedUser) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (searchedUser) {
-                                    var tweets = searchedUser.tweets;
+                                    var tweets = searchedUser;
                                     var notFollowingUsername = [];
 
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
@@ -624,7 +639,7 @@ app.post("/search", function (request, response) {
                                                 });
                                             }
                                         }
-                                        notFollowingUsername = rankTweets(notFollowingUsername, rank);
+                                        // notFollowingUsername = rankTweets(notFollowingUsername, rank);
                                     }
 
                                     var data = {status: "OK", items: notFollowingUsername};
@@ -633,18 +648,23 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
+                                                console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
+                                        console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
+                                    console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
                         } else {
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
+                            // db.tweets.find().sort({weight:-1}).pretty()
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
+                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
@@ -665,7 +685,7 @@ app.post("/search", function (request, response) {
                                                 });
                                             }
                                         }
-                                        notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
+                                        // notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
                                     }
 
                                     var data = {status: "OK", items: notFollowingNoUsername};
@@ -674,13 +694,16 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
+                                                console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
+                                        console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
+                                    console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
@@ -958,11 +981,11 @@ app.post("/item/:id/like", function (request, response) {
                     }
 
                     if (!alreadyLiked && (like === true || like === "true")) {
-                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1}, $addToSet: {likers: liker}}, function (error) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1}, $inc: {weight: 1}, $addToSet: {likers: liker}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": 1}, $addToSet: {"tweets.$.likers": liker}}, function (error) {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": 1}, $inc: {"tweets.$.weight": 1}, $addToSet: {"tweets.$.likers": liker}}, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
@@ -972,11 +995,11 @@ app.post("/item/:id/like", function (request, response) {
                             }
                         });
                     } else if (alreadyLiked && (like === false || like === "false")) {
-                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1}, $pull: {likers: liker}}, function (error) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1}, $inc: {weight: -1}, $pull: {likers: liker}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": -1}, $pull: {"tweets.$.likers": liker}}, function (error) {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": -1}, $inc: {"tweets.$.weight": -1}, $pull: {"tweets.$.likers": liker}}, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
