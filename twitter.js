@@ -561,7 +561,7 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1}}, {$limit: limit}).toArray(function (error, followees)) {
+                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1}}, {$limit: limit}).toArray(function (error, followees) {
                                     // db.collection("users").find({username: {$in: loggedInUser.followinglist}}).toArray(function (error, followees) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
