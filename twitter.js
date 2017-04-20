@@ -694,7 +694,7 @@ app.post("/search", function (request, response) {
                                                 });
                                             }
                                         }
-                                        // notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
+                                        notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
                                     }
 
                                     var data = {status: "OK", items: notFollowingNoUsername};
