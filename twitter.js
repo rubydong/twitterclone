@@ -689,7 +689,7 @@ app.post("/search", function (request, response) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
                                     var notFollowingNoUsername = [];
-                                    console.log(tweets);
+                                    // console.log(tweets);
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                         for (var i = 0; i < tweets.length && notFollowingNoUsername.length < limit; i++) {
                                             var tweet = tweets[i];
