@@ -672,8 +672,8 @@ app.post("/search", function (request, response) {
                             });
                         } else {
                             // db.tweets.find().sort({weight:-1}).pretty()
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
-                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
+                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
