@@ -194,6 +194,7 @@ app.post("/verify", function (request, response) {
 
 //Grading script
 app.post("/additem", function (request, response) {
+    console.log("adding item");
     var content = request.body.content;
     var parent = request.body.parent ? request.body.parent : "none";
     var media;
