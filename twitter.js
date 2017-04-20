@@ -453,6 +453,8 @@ app.post("/search", function (request, response) {
     var replies = true;
     var rank = "interest";
 
+    var rank_query = {'tweets.weight': -1, 'tweets.timestamp': -1};
+
     //Assign values based on request
     if (request.body.timestamp) {
         timestamp = parseInt(request.body.timestamp) * 1000;
@@ -478,10 +480,14 @@ app.post("/search", function (request, response) {
     }
     if (request.body.rank) {
         rank = request.body.rank;
+
 	// console.log("rank is", rank);
     } else {
 	// console.log("rank is", rank);
     }
+
+    if (rank === "time")
+        rank_query = {'tweets.timestamp': -1};
 
     // regex to break up query into separate tokens
     var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
@@ -507,7 +513,7 @@ app.post("/search", function (request, response) {
                                         // db.tweets.find().sort({weight:-1}).pretty()
                                         //db.users.aggregate( { $match: { username: "newuser1"}}, { $unwind: '$tweets' }, { $sort : { 'tweets.weight': -1}})
 
-                                    db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1, 'tweets.timestamp': -1}}, {$limit: limit}, function (error, followedUser) {
+                                    db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}, function (error, followedUser) {
                                     // db.collection("users").findOne({username: username}, function (error, followedUser) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
@@ -564,7 +570,7 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1, 'tweets.timestamp': -1}}, {$limit: limit}).toArray(function (error, followees) {
+                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}).toArray(function (error, followees) {
                                     // db.collection("users").find({username: {$in: loggedInUser.followinglist}}).toArray(function (error, followees) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
@@ -622,7 +628,7 @@ app.post("/search", function (request, response) {
                         }
                     } else {
                         if (username) {
-                            db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: {'tweets.weight': -1, 'tweets.timestamp': -1}}, {$limit: limit}, function (error, searchedUser) {
+                            db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}, function (error, searchedUser) {
                             // db.collection("users").findOne({username: username}, function (error, searchedUser) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
@@ -672,7 +678,12 @@ app.post("/search", function (request, response) {
                             });
                         } else {
                             // db.tweets.find().sort({weight:-1}).pretty()
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort({weight: -1}).toArray(function (error, tweets) {
+                            var r_q = {};
+                            if (rank === "time")
+                                r_q = {'timestamp': -1};
+                            else
+                                r_q = {'timestamp':-1, 'weight':-1};
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort(r_q).toArray(function (error, tweets) {
                             // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
