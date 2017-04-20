@@ -539,11 +539,13 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
+                                                        console.log("following: true username: true");
                                                         console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
+                                                console.log("following: true username: true");
                                                 console.timeEnd("search");
                                                 response.json(data);
                                             }
@@ -596,15 +598,18 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
+                                                        console.log("following: true username: false");
                                                         console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
+                                                console.log("following: true username: false");
                                                 console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
+                                            console.log("following: true username: false");
                                             console.timeEnd("search");
                                             response.json({status: "OK", items: []});
                                         }
@@ -648,15 +653,18 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
+                                                console.log("following: false username: true");
                                                 console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
+                                        console.log("following: false username: true");
                                         console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
+                                    console.log("following: false username: true");
                                     console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
@@ -694,15 +702,18 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
+                                                console.log("following: false username: false");
                                                 console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
+                                        console.log("following: false username: false");
                                         console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
+                                    console.log("following: false username: false");
                                     console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
