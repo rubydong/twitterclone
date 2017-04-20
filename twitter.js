@@ -200,7 +200,6 @@ app.post("/additem", function (request, response) {
     var parent = request.body.parent ? request.body.parent : "none";
     var media = [];
 
-    console.log(request.body.media);
     if (request.body.media) {
         if (typeof request.body.media === "string") {
             media = request.body.media.replace("[", "").replace("]", "").split(",");
@@ -236,16 +235,25 @@ app.post("/additem", function (request, response) {
                             response.json({status: "error", error: error.toString()});
                         } else {
                             if (media.length > 0) {
-                                media.forEach(function (mediaId, index, array) {
-                                    db.collection("media").updateOne({_id: mediaId.trim()}, {$set: {tweetId: id}}, function (error) {
-                                        if (error) {
-                                            response.json({status: "error", error: error.toString()});
-                                        }
-                                        if (index === array.length - 1) {
-                                            response.json({status: "OK", id: id});
-                                        }
-                                    });
+
+                                db.collection("media").update({ _id: { in: media}}, {$set: {tweetId: id}}, function (error, document) {
+                                    if (error) {
+                                        response.json({status: "error", error: error.toString()});
+                                    } else {
+                                        response.json({status: "OK", id: id});
+                                    }
                                 });
+                                // media.forEach(function (mediaId, index, array) {
+
+                                //     db.collection("media").updateOne({_id: mediaId.trim()}, {$set: {tweetId: id}}, function (error) {
+                                //         if (error) {
+                                //             response.json({status: "error", error: error.toString()});
+                                //         }
+                                //         if (index === array.length - 1) {
+                                //             response.json({status: "OK", id: id});
+                                //         }
+                                //     });
+                                // });
                             } else {
                                 response.json({status: "OK", id: id});
                             }
