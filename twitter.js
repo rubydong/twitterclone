@@ -197,20 +197,21 @@ app.post("/additem", function (request, response) {
     var sessionKey = request.cookies.key;
     var content = request.body.content;
     var parent = request.body.parent ? request.body.parent : "none";
-    var media = [];
-
-    if (request.body.media) {
-        if (typeof request.body.media === "string") {
-            media = request.body.media.replace("[", "").replace("]", "").split(",");
-        } else {
-            media = request.body.media;
-        }
-    }
 
     db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (document) {
+            var media = [];
+
+            if (request.body.media) {
+                if (typeof request.body.media === "string") {
+                    media = request.body.media.replace("[", "").replace("]", "").split(",");
+                } else {
+                    media = request.body.media;
+                }
+            }
+
             var id = new ObjectID().toHexString();
             var tweet = {
                 _id: id,
@@ -233,12 +234,10 @@ app.post("/additem", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
-                            console.log(media);
-                            console.log(media.length);
-                            console.log(request.body.media);
                             if (media.length > 0) {
                                 db.collection("media").update({_id: {$in: media}}, {$set: {tweetId: id}}, {multi: true}, function (error, document) {
                                     if (error) {
+                                        console.log("error updating media with tweetId");
                                         response.json({status: "error", error: error.toString()});
                                     } else {
                                         response.json({status: "OK", id: id});
