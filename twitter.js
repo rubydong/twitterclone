@@ -17,7 +17,9 @@ app.set("trust proxy", 1); //Trust first proxy for cookie
 var db;
 var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
-MongoClient.connect("mongodb://130.245.168.82:27017/twitter", function (error, database) {
+
+// connecting to m3-1
+MongoClient.connect("mongodb://130.245.168.182:27017/twitter", function (error, database) {
     if (error) {
         return console.error(error);
     }
@@ -211,7 +213,6 @@ app.post("/additem", function (request, response) {
                     media = request.body.media;
                 }
             }
-
             var id = new ObjectID().toHexString();
             var tweet = {
                 _id: id,
@@ -561,7 +562,7 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").aggregate({$match: {$and: [{username: {$in: loggedInUser.following}}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
+                                    db.collection("users").aggregate({$match: {$and: [{username: {$in: loggedInUser.followinglist}}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
                                                                      {$unwind: '$tweets'}, 
                                                                      {$sort: rank_query}, 
                                                                      {$limit: limit}).toArray(function (error, followees) {
