@@ -234,6 +234,7 @@ app.post("/additem", function (request, response) {
                             response.json({status: "error", error: error.toString()});
                         } else {
                             console.log(media);
+                            console.log(media.length);
                             console.log(request.body.media);
                             if (media.length > 0) {
                                 db.collection("media").update({_id: {$in: media}}, {$set: {tweetId: id}}, {multi: true}, function (error, document) {
