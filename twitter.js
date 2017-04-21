@@ -17,7 +17,9 @@ app.set("trust proxy", 1); //Trust first proxy for cookie
 var db;
 var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
-MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
+
+// connecting to m3-1
+MongoClient.connect("mongodb://130.245.168.182:27017/twitter", function (error, database) {
     if (error) {
         return console.error(error);
     }
@@ -25,7 +27,7 @@ MongoClient.connect("mongodb://localhost:27017/twitter", function (error, databa
 
     db.createIndex("users", {username: 1, email: 1, password: 1, verified: 1, following: 1, "tweets._id": 1}, {background: true}, function () {
         db.createIndex("users", {username: 1}, {background: true}, function () {
-            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
+            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1, weight: 1}, {background: true}, function () {
                 db.createIndex("media", {_id: 1, tweetId: 1}, {background: true}, function () {
                     db.createIndex("sessions", {key: 1}, {background: true}, function () {
                         console.log("Connected to MongoDB with indexes created");
@@ -211,7 +213,6 @@ app.post("/additem", function (request, response) {
                     media = request.body.media;
                 }
             }
-
             var id = new ObjectID().toHexString();
             var tweet = {
                 _id: id,
