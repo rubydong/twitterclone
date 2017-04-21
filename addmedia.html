@@ -17,25 +17,26 @@
             <a href="/">HOME</a>
             <a href="/" style="float: left;">TWITTER</a>
         </div> 
-        
         <div class="everything" ng-app="myApp" ng-controller="myCtrl" ng-cloak>
-            <form method="POST" action="/addmedia" enctype="multipart/form-data" id="uploadForm">
-            <h2>Add Media</h2>
-            Media: <input type="file" name="content" multiple> <br>
-            <button type="submit" id="mediaUpload" ng-click = mediaUpload()>Upload</button> 
-            </form>
+            
+            <div class="replace">
+                <form method="POST" action="/addmedia" enctype="multipart/form-data" id="uploadForm">
+                <h2>Add Media</h2>
+                Media: <input type="file" name="content"> <br>
+                <button type="submit" id="mediaUpload" ng-click=mediaUpload()>Upload</button> 
+                </form>
 
 
-            <h2>Get Media </h2>
-            <input type="text" style="width:300px" name="id"> <br>
-            <button type="submit" id="mediaRetrieve">Retrieve</button>
+                <h2>Get Media </h2>
+                <input type="text" style="width:300px" name="id"> <br>
+                <button type="submit" id="mediaRetrieve">Retrieve</button>
+            </div>
         </div>
     </body>
     
     <script>
         var app = angular.module('myApp', []);    
         app.controller('myCtrl', function($scope, $http) {
-            
             var userInfo = $http.post("/user");
             userInfo.success(function (data) {
                 if (data.status == "OK") {
@@ -46,6 +47,19 @@
                 }
             });
 
+            $("#mediaUpload").click(function(event) {
+                event.preventDefault();
+                var fd = new FormData($('#uploadForm')[0]);
+                var upload = $http.post("/addmedia", fd, {
+                    transformRequest:angular.identity,
+                    headers: {'Content-Type': undefined}
+                });
+                upload.success(function(data) {
+                    $(".replace").html("Your uploaded image id is "+ data.id + "<br><a href='/addmedia'>Try again</a>? <br>");
+//                    alert(data.id);
+                });
+            });
+            
             $("#mediaRetrieve").click(function() {
                 var id = $("input[name='id']").val()
                 var mediaRetrieve = $http.get("/media/" + id);
