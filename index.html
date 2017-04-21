@@ -76,7 +76,7 @@
                         <div class="icons">
                             <!-- <img src="img/reply.png"> -->
                             <img src="img/like.png" id="like" ng-click="handleLike(tweet.id, tweet.username)"> {{tweet.likes}}
-                            <img src="img/retweetGray.png" id="retweet" ng-click="handleRetweet(tweet.id, tweet.content)"> {{tweet.retweets}}
+                            <img src="img/retweetGray.png" id="retweet" ng-click="handleRetweet(tweet.id, tweet.content, tweet.media)"> {{tweet.retweets}}
                         </div>
                         <br>
                         
@@ -117,9 +117,10 @@
                     });
                 }
                 
-                $scope.handleRetweet = function (parent, content) {
+                $scope.handleRetweet = function (parent, content, media) {
                     var retweet = $http.post("/additem", 
                     JSON.stringify({
+                        media: media,
                         retweetParent: parent, 
                         content: "RT " + content,
                         retweetBool: true
