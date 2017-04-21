@@ -25,10 +25,10 @@ MongoClient.connect("mongodb://130.245.168.182:27017/twitter", function (error, 
     }
     db = database;
 
-    db.createIndex("users", {username: 1, email: 1, password: 1, verified: 1, following: 1, "tweets._id": 1}, {background: true}, function () {
+    db.createIndex("users", {username: 1, email: 1, "tweets._id": 1, "tweets.content": 1, "tweets.timestamp": 1}, {background: true}, function () {
         db.createIndex("users", {username: 1}, {background: true}, function () {
-            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1, weight: 1}, {background: true}, function () {
-                db.createIndex("media", {_id: 1, tweetId: 1}, {background: true}, function () {
+            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
+                db.createIndex("media", {_id: 1}, {background: true}, function () {
                     db.createIndex("sessions", {key: 1}, {background: true}, function () {
                         console.log("Connected to MongoDB with indexes created");
                     });
@@ -59,7 +59,7 @@ app.post("/adduser", function (request, response) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
             } else if (document) {
-		console.log(document);
+        //console.log(document);
                 response.json({status: "error", error: "USERNAME/EMAIL ALREADY EXISTS"});
             } else {
                 var newUser = {
@@ -73,6 +73,7 @@ app.post("/adduser", function (request, response) {
                 };
                 db.collection("users").insertOne(newUser, function (error) {
                     if (error) {
+            //console.log(error);
                         response.json({status: "error", error: error.toString()});
                     } else {
                         response.json({status: "OK"});
@@ -235,19 +236,24 @@ app.post("/additem", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
+                response.json({status: "OK", id: id});
+            }
+            /*
                             if (media.length > 0) {
-                                db.collection("media").update({_id: {$in: media}}, {$set: {tweetId: id}}, {multi: true}, function (error, document) {
-                                    if (error) {
-                                        console.log("error updating media with tweetId");
-                                        response.json({status: "error", error: error.toString()});
-                                    } else {
-                                        response.json({status: "OK", id: id});
-                                    }
+                media.forEach(function (mediaId, index, array) {
+                                    db.collection("media").updateOne({_id: mediaId}, {$set: {tweetId: id}}, function (error) {
+                                        if (error) {
+                                            response.json({status: "error", error: error.toString()});
+                                        }
+                                        if (index === array.length - 1) {
+                                            response.json({status: "OK", id: id});
+                                        }
+                                    });
                                 });
                             } else {
                                 response.json({status: "OK", id: id});
                             }
-                        }
+                        }*/
                     });
                 }
             });
@@ -345,9 +351,10 @@ app.delete("/item/:id", function (request, response) {
                     db.collection("tweets").findOneAndDelete({_id: id, username: sessionKey}, function (error, doc) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
-                        } else if (doc) {
+                        } else if (doc.value) {
                             var media = doc.value.media;
-                            db.collection("media").remove({tweetId: id}, function (error) {
+                  db.collection("media").deleteMany({_id: {$in: media}}, function (error) {
+///                            db.collection("media").deleteMany({tweetId: id}, function (error) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else {
@@ -355,7 +362,7 @@ app.delete("/item/:id", function (request, response) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else {
-					if (media.length > 0) {
+                    if (media.length > 0) {
                                             media.forEach(function (mediaId, index, array) {
                                                 memcached.del(mediaId + "media", function (error) {
                                                     if (error) {
@@ -367,12 +374,12 @@ app.delete("/item/:id", function (request, response) {
                                                 });
                                             });
                                         } else {
-						response.json({status: "OK"});
-					}
+                        response.json({status: "OK"});
+                    }
                                     }
-                            });
-			}
-			});
+                             });
+                }
+                });
                         } else {
                             response.json({status: "error", error: "TWEET " + id + " NOT FOUND OR DOES NOT BELONG TO LOGGED IN USER"});
                         }
@@ -478,9 +485,9 @@ app.post("/search", function (request, response) {
     if (request.body.rank) {
         rank = request.body.rank;
 
-	// console.log("rank is", rank);
+    // console.log("rank is", rank);
     } else {
-	// console.log("rank is", rank);
+    // console.log("rank is", rank);
     }
 
     if (rank === "time")
@@ -510,7 +517,11 @@ app.post("/search", function (request, response) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
 
+<<<<<<< HEAD
+                                    db.collection("users").aggregate({$match: {$and: [{username: username}, {'tweets.content': {$regex: queryRegex}}, {'tweets.timestamp': {$lte: timestamp}}]}}, 
+=======
                                     db.collection("users").aggregate({$match: {$and: [{username: username}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
+>>>>>>> bfeeacb74f7f7e0d817847ea356e42126d63a269
                                                                      {$unwind: '$tweets'}, 
                                                                      {$sort: rank_query}, 
                                                                      {$limit: limit}, function (error, followedUser) {
@@ -562,7 +573,11 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
+<<<<<<< HEAD
+                                    db.collection("users").aggregate({$match: {$and: [{username: {$in: loggedInUser.followinglist}}, {'tweets.content': {$regex: queryRegex}}, {'tweets.timestamp': {$lte: timestamp}}]}}, 
+=======
                                     db.collection("users").aggregate({$match: {$and: [{username: {$in: loggedInUser.followinglist}}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
+>>>>>>> bfeeacb74f7f7e0d817847ea356e42126d63a269
                                                                      {$unwind: '$tweets'}, 
                                                                      {$sort: rank_query}, 
                                                                      {$limit: limit}).toArray(function (error, followees) {
@@ -615,7 +630,11 @@ app.post("/search", function (request, response) {
                         }
                     } else {
                         if (username) {
+<<<<<<< HEAD
+                            db.collection("users").aggregate({$match: {$and: [{username: username}, {'tweets.content': {$regex: queryRegex}}, {'tweets.timestamp': {$lte: timestamp}}]}}, 
+=======
                             db.collection("users").aggregate({$match: {$and: [{username: username}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
+>>>>>>> bfeeacb74f7f7e0d817847ea356e42126d63a269
                                                              {$unwind: '$tweets'}, {$sort: rank_query}, 
                                                              {$limit: limit}, function (error, searchedUser) {
                                 if (error) {
@@ -973,16 +992,16 @@ app.post("/item/:id/like", function (request, response) {
                     var likers = doc.likers;
                     var alreadyLiked = false;
 
-                    if (likers.includes(liker)) {
+                    if (likers.indexOf(liker) > -1) {
                         alreadyLiked = true;
                     }
 
                     if (!alreadyLiked && (like === true || like === "true")) {
-                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1}, $inc: {weight: 1}, $addToSet: {likers: liker}}, function (error) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1, weight: 1}, $addToSet: {likers: liker}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": 1}, $inc: {"tweets.$.weight": 1}, $addToSet: {"tweets.$.likers": liker}}, function (error) {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": 1, "tweets.$.weight": 1}, $addToSet: {"tweets.$.likers": liker}}, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
@@ -992,11 +1011,11 @@ app.post("/item/:id/like", function (request, response) {
                             }
                         });
                     } else if (alreadyLiked && (like === false || like === "false")) {
-                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1}, $inc: {weight: -1}, $pull: {likers: liker}}, function (error) {
+                        db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1, weight: -1}, $pull: {likers: liker}}, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": -1}, $inc: {"tweets.$.weight": -1}, $pull: {"tweets.$.likers": liker}}, function (error) {
+                                db.collection("users").updateOne({username: tweeter, "tweets._id": id}, {$inc: {"tweets.$.likes": -1, "tweets.$.weight": -1}, $pull: {"tweets.$.likers": liker}}, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
@@ -1032,11 +1051,16 @@ app.post("/addmedia", upload.single("content"), function (request, response) {
             var id = new ObjectID().toHexString();
             db.collection("media").insert({
                 _id: id,
-                tweetId: "none",
+              //  tweetId: "none",
                 type: request.file.mimetype,
                 buffer: request.file.buffer
-            });
-            response.json({status: "OK", id: id});
+            }, function (error, document) {
+        if (error) {
+            response.json({status:"error", error: error.toString()});
+        } else {
+                    response.json({status: "OK", id: id});
+        }
+        });
         } else {
             response.json({status: "error", error: "NOT LOGGED IN"});
         }
@@ -1056,7 +1080,7 @@ app.get("/media/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else if (data) {
-			//console.log(data);
+            //console.log(data);
                     response.setHeader("Content-Type", data.type);
                     response.end(data.buffer.buffer);
                 } else {
@@ -1068,7 +1092,7 @@ app.get("/media/:id", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else {
-				//	console.log(media);
+                //  console.log(media);
                                     response.setHeader("Content-Type", media.type);
                                     response.end(media.buffer.buffer);
                                 }
