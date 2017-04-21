@@ -39,7 +39,7 @@
                     <img src='../img/tuser.png' align='left' style="width: 60px; margin: 5px 5px 0px 5px;"> @{{tweet.username}}
                     Id #{{tweet.id}} 
                     {{tweet.timestamp | date:'M/d/yyyy'}}
-                    <a href="" class="delete" id= "{{tweet.id}}">{{deleteButton}}</a>
+                     <a href="" class="delete" id= "{{tweet.id}}" ng-click=deleteTweet(tweet.id)>{{deleteButton}}</a>
                     <br>
                     {{tweet.content}} 
                     <br>

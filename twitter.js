@@ -513,7 +513,8 @@ app.post("/search", function(req, res) {
                                                 content: tweets[i].content,
                                                 timestamp: tweets[i].timestamp,
                                                 likes: tweets[i].likes,
-                                                retweets: tweets[i].retweets
+                                                retweets: tweets[i].retweets, 
+                                                media: tweets[i].media
                                             });
                                             count1++;
                                         }
@@ -549,7 +550,8 @@ app.post("/search", function(req, res) {
                                                     content: tweets[j].content,
                                                     timestamp: tweets[j].timestamp,
                                                     likes: tweets[j].likes,
-                                                retweets: tweets[j].retweets
+                                                    retweets: tweets[j].retweets,
+                                                    media: tweets[j].media
                                                 });
                                                 count2++;
                                             }
@@ -583,7 +585,8 @@ app.post("/search", function(req, res) {
                                         content: tweets[j].content,
                                         timestamp: tweets[j].timestamp,
                                         likes: tweets[j].likes,
-                                        retweets: tweets[j].retweets
+                                        retweets: tweets[j].retweets,
+                                        media: tweets[j].media
                                     });
                                     count3++;
                                 }
@@ -612,9 +615,10 @@ app.post("/search", function(req, res) {
                                         content: val[i].content,
                                         timestamp: val[i].timestamp,
                                         likes: val[i].likes,
-                                        retweets: val[i].retweets
+                                        retweets: val[i].retweets,
+                                        media: val[i].media
                                     });
-                                    count4++;
+                                    count++;
                                 
                             }
                             res.json({status: "OK",items: send4});
