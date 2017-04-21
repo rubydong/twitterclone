@@ -26,15 +26,15 @@ MongoClient.connect("mongodb://130.245.168.182:27017/twitter", function (error, 
     db = database;
 
     db.createIndex("users", {username: 1, email: 1, "tweets._id": 1, "tweets.content": 1, "tweets.timestamp": 1}, {background: true}, function () {
-        db.createIndex("users", {username: 1}, {background: true}, function () {
-            db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
-                db.createIndex("media", {_id: 1}, {background: true}, function () {
-                    db.createIndex("sessions", {key: 1}, {background: true}, function () {
-                        console.log("Connected to MongoDB with indexes created");
-                    });
-                });
-            });
-        });
+    db.createIndex("users", {username: 1}, {background: true}, function () {
+    db.createIndex("tweets", {_id: 1, username: 1, content: 1, timestamp: 1}, {background: true}, function () {
+    db.createIndex("media", {_id: 1}, {background: true}, function () {
+    db.createIndex("sessions", {key: 1}, {background: true}, function () {
+        console.log("Connected to MongoDB with indexes created");
+    });
+    });
+    });
+    });
     });
 
 });
@@ -59,7 +59,6 @@ app.post("/adduser", function (request, response) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
             } else if (document) {
-        //console.log(document);
                 response.json({status: "error", error: "USERNAME/EMAIL ALREADY EXISTS"});
             } else {
                 var newUser = {
@@ -73,9 +72,8 @@ app.post("/adduser", function (request, response) {
                 };
                 db.collection("users").insertOne(newUser, function (error) {
                     if (error) {
-            //console.log(error);
                         response.json({status: "error", error: error.toString()});
-                    } else {
+                    } else { 
                         response.json({status: "OK"});
                     }
                 });
@@ -97,7 +95,8 @@ app.post("/login", function (request, response) {
     var password = request.body.password;
 
     if (username && password) {
-        db.collection("users").findOne({username: username, password: password, verified: "yes"}, function (error, document) {
+        var query = {username: username, password: password, verified: "yes"};
+        db.collection("users").findOne(query, function (error, document) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
             } else if (document) {
@@ -127,7 +126,8 @@ app.get("/logout", function (request, response) {
 
 //Grading script
 app.post("/logout", function (request, response) {
-    db.collection("sessions").remove({key: request.cookies.key}, function (error) {
+    var sessionkey = request.cookies.key;
+    db.collection("sessions").remove({key: sessionkey}, function (error) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else {
@@ -236,24 +236,8 @@ app.post("/additem", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
-                response.json({status: "OK", id: id});
-            }
-            /*
-                            if (media.length > 0) {
-                media.forEach(function (mediaId, index, array) {
-                                    db.collection("media").updateOne({_id: mediaId}, {$set: {tweetId: id}}, function (error) {
-                                        if (error) {
-                                            response.json({status: "error", error: error.toString()});
-                                        }
-                                        if (index === array.length - 1) {
-                                            response.json({status: "OK", id: id});
-                                        }
-                                    });
-                                });
-                            } else {
-                                response.json({status: "OK", id: id});
-                            }
-                        }*/
+                            response.json({status: "OK", id: id});
+                        }
                     });
                 }
             });
@@ -290,10 +274,11 @@ app.post("/item", function (request, response) {
 
 //Grading script
 app.get("/item/:id", function (request, response) {
+    var sessionkey = request.cookies.key;
     var id = request.params.id;
     var mcKey = id + "item";
 
-    db.collection("sessions").findOne({key: request.cookies.key}, function (error, document) {
+    db.collection("sessions").findOne({key: sessionkey}, function (error, document) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (document) {
@@ -353,8 +338,7 @@ app.delete("/item/:id", function (request, response) {
                             response.json({status: "error", error: error.toString()});
                         } else if (doc.value) {
                             var media = doc.value.media;
-                  db.collection("media").deleteMany({_id: {$in: media}}, function (error) {
-///                            db.collection("media").deleteMany({tweetId: id}, function (error) {
+                            db.collection("media").deleteMany({_id: {$in: media}}, function (error) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else {
@@ -362,24 +346,24 @@ app.delete("/item/:id", function (request, response) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else {
-                    if (media.length > 0) {
-                                            media.forEach(function (mediaId, index, array) {
-                                                memcached.del(mediaId + "media", function (error) {
-                                                    if (error) {
-                                                        response.json({status: "error", error: error.toString()});
-                                                    }
-                                                    if (index === array.length - 1) {
-                                                        response.json({status: "OK"});
-                                                    }
+                                            if (media.length > 0) {
+                                                media.forEach(function (mediaId, index, array) {
+                                                    memcached.del(mediaId + "media", function (error) {
+                                                        if (error) {
+                                                            response.json({status: "error", error: error.toString()});
+                                                        }
+                                                        if (index === array.length - 1) {
+                                                            response.json({status: "OK"});
+                                                        }
+                                                    });
                                                 });
-                                            });
-                                        } else {
-                        response.json({status: "OK"});
-                    }
-                                    }
-                             });
-                }
-                });
+                                            } else {
+                                                response.json({status: "OK"});
+                                            }
+                                        }
+                                    });
+                                }
+                            });
                         } else {
                             response.json({status: "error", error: "TWEET " + id + " NOT FOUND OR DOES NOT BELONG TO LOGGED IN USER"});
                         }
