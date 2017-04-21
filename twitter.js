@@ -17,9 +17,7 @@ app.set("trust proxy", 1); //Trust first proxy for cookie
 var db;
 var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
-
-// connecting to m3-1
-MongoClient.connect("mongodb://130.245.168.182:27017/twitter", function (error, database) {
+MongoClient.connect("mongodb://130.245.168.82:27017/twitter", function (error, database) {
     if (error) {
         return console.error(error);
     }
@@ -213,6 +211,7 @@ app.post("/additem", function (request, response) {
                     media = request.body.media;
                 }
             }
+
             var id = new ObjectID().toHexString();
             var tweet = {
                 _id: id,
@@ -510,7 +509,7 @@ app.post("/search", function (request, response) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
 
-                                    db.collection("users").aggregate({$match: {username: username}}, 
+                                    db.collection("users").aggregate({$match: {$and: [{username: username}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
                                                                      {$unwind: '$tweets'}, 
                                                                      {$sort: rank_query}, 
                                                                      {$limit: limit}, function (error, followedUser) {
@@ -523,7 +522,7 @@ app.post("/search", function (request, response) {
                                             if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                                 for (var i = 0; i < tweets.length && followingUsername.length < limit; i++) {
                                                     var tweet = tweets[i].tweets;
-                                                    if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                                    if (filterTweet(tweet, parent, replies)) {
                                                         followingUsername.push({
                                                             id: tweet._id,
                                                             username: tweet.username,
@@ -562,7 +561,7 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, 
+                                    db.collection("users").aggregate({$match: {$and: [{username: {$in: loggedInUser.following}}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
                                                                      {$unwind: '$tweets'}, 
                                                                      {$sort: rank_query}, 
                                                                      {$limit: limit}).toArray(function (error, followees) {
@@ -577,7 +576,7 @@ app.post("/search", function (request, response) {
 
                                                     for (var j = 0; j < tweets.length && followingNoUsername.length < limit; j++) {
                                                         var tweet = tweets[j].tweets;
-                                                        if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                                        if (filterTweet(tweet, parent, replies)) {
                                                             followingNoUsername.push({
                                                                 id: tweet._id,
                                                                 username: tweet.username,
@@ -615,7 +614,7 @@ app.post("/search", function (request, response) {
                         }
                     } else {
                         if (username) {
-                            db.collection("users").aggregate({$match: {username: username}}, 
+                            db.collection("users").aggregate({$match: {$and: [{username: username}, {content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}}, 
                                                              {$unwind: '$tweets'}, {$sort: rank_query}, 
                                                              {$limit: limit}, function (error, searchedUser) {
                                 if (error) {
@@ -627,7 +626,7 @@ app.post("/search", function (request, response) {
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                         for (var i = 0; i < tweets.length && notFollowingUsername.length < limit; i++) {
                                             var tweet = tweets[i].tweets;
-                                            if (tweet.content.match(queryRegex) && tweet.timestamp <= timestamp && filterTweet(tweet, parent, replies)) {
+                                            if (filterTweet(tweet, parent, replies)) {
                                                 notFollowingUsername.push({
                                                     id: tweet._id,
                                                     username: tweet.username,
