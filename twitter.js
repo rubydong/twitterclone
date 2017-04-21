@@ -542,8 +542,8 @@ app.post("/search", function(req, res) {
                                         var tweets = val[i].tweets;
 
                                         for (var j = 0; j < tweets.length && count2 < limit; j++) {
-                                            if ( (tweets[j].content.match(query) != null) && 
-                                                 (tweets[j].timestamp <= timestamp)) {
+                                            if ( 
+                                                 tweets[j].timestamp <= timestamp) {
                                                 send2.push({
                                                     id: tweets[j].id,
                                                     username: tweets[j].username,
@@ -577,8 +577,7 @@ app.post("/search", function(req, res) {
                             //console.log("QUERY IS... " + query);
                             for (var j = 0; j < tweets.length && count3 < limit; j++) {
                                 //console.log(tweets[j]);
-                                if ( (tweets[j].content.match(query) != null) && 
-                                     (tweets[j].timestamp <= timestamp)) {
+                                if ( tweets[j].timestamp <= timestamp) {
                                     send3.push({
                                         id: tweets[j].id,
                                         username: tweets[j].username,

@@ -18,7 +18,6 @@
     <body>
         <div class="navigation">
             <a href="/logout" id="logoutLink">LOGOUT</a>
-            <a href="/addmedia">MEDIA</a>
             <a href="/follow">FOLLOW</a>
             <a href="/search">SEARCH</a>
             <a href="" id="profileClick">PROFILE</a>
@@ -37,6 +36,9 @@
                     <br>
                     {{tweet.content}} 
                     <br>
+                    <div class="tweetImgs" ng-repeat = "m in tweet.media">
+                        <img src='/media/{{m}}'>
+                    </div>
                     <div class="icons">
                         <!-- <img src="img/reply.png"> -->
                         <img src="img/like.png" style="width: 22px" id="like" ng-click="handleLike(tweet.id, tweet.username)"> {{tweet.likes}}
@@ -52,6 +54,10 @@
                     <br>
                     {{itemResult.item.content}} 
                     <br>
+
+                    <div class="tweetImgs" ng-repeat = "m in itemResult.item.media">
+                        <img src='/media/{{m}}'>                      
+                    </div>
                     <div class="icons">
                         <!-- <img src="img/reply.png"> -->
                         <img src="img/like.png" style="width: 22px" id="like" ng-click="handleLike(itemResult.item.id, itemResult.item.username)"> {{itemResult.item.likes}}

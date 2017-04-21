@@ -131,6 +131,31 @@ textarea:focus {outline:0;}
     background-color: #FFF !important;
 }
 
+
+.tweetImgs img{
+    width: 100px;
+}
+
+.tweetImgs {
+    display: inline;
+}
+
+.userIcon {
+    content: url("img/tuser.png");
+    width: 40px; 
+    margin: 0px 20px 0px 5px;
+}
+
+.icons {
+    padding-left: 63px;
+    height: 25px;
+    line-height: 25px;
+}
+
+.icons img{
+    height: 25px;
+}
+
 /*border + background color*/
 .navigation, #userInfo img, textarea, .tweet, .info, #itemForm, #searchForm, #followForm {
     border:1px solid #D4D4D4;
