@@ -194,7 +194,6 @@ app.post("/verify", function (request, response) {
 
 //Grading script
 app.post("/additem", function (request, response) {
-    // console.log("adding item");
     var sessionKey = request.cookies.key;
     var content = request.body.content;
     var parent = request.body.parent ? request.body.parent : "none";
@@ -234,8 +233,9 @@ app.post("/additem", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
+                            console.log(media);
+                            console.log(request.body.media);
                             if (media.length > 0) {
-
                                 db.collection("media").update({_id: {$in: media}}, {$set: {tweetId: id}}, {multi: true}, function (error, document) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
@@ -243,17 +243,6 @@ app.post("/additem", function (request, response) {
                                         response.json({status: "OK", id: id});
                                     }
                                 });
-                                // media.forEach(function (mediaId, index, array) {
-
-                                //     db.collection("media").updateOne({_id: mediaId.trim()}, {$set: {tweetId: id}}, function (error) {
-                                //         if (error) {
-                                //             response.json({status: "error", error: error.toString()});
-                                //         }
-                                //         if (index === array.length - 1) {
-                                //             response.json({status: "OK", id: id});
-                                //         }
-                                //     });
-                                // });
                             } else {
                                 response.json({status: "OK", id: id});
                             }
@@ -450,7 +439,6 @@ app.get("/search", function (request, response) {
 });
 
 app.post("/search", function (request, response) {
-    // console.time("search");
     //Assign defaults
     var timestamp = Date.now();
     var limit = 25;
@@ -500,7 +488,9 @@ app.post("/search", function (request, response) {
     // regex to break up query into separate tokens
     var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
     var sessionKey = request.cookies.key;
-    var mcKey = following === true || following === "true" ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString() : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString(); //Memcached key
+    var mcKey = following === true || following === "true" 
+                ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString() 
+                : [request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies, rank].toString(); //Memcached key
 
     db.collection("sessions").findOne({key: sessionKey}, function (error, document) {
         if (error) {
@@ -518,15 +508,14 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                        // db.tweets.find().sort({weight:-1}).pretty()
-                                        //db.users.aggregate( { $match: { username: "newuser1"}}, { $unwind: '$tweets' }, { $sort : { 'tweets.weight': -1}})
 
-                                    db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}, function (error, followedUser) {
-                                    // db.collection("users").findOne({username: username}, function (error, followedUser) {
+                                    db.collection("users").aggregate({$match: {username: username}}, 
+                                                                     {$unwind: '$tweets'}, 
+                                                                     {$sort: rank_query}, 
+                                                                     {$limit: limit}, function (error, followedUser) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else if (followedUser) {
-                                            // var tweets = followedUser.tweets;
                                             var tweets = followedUser;
                                             var followingUsername = [];
 
@@ -545,7 +534,6 @@ app.post("/search", function (request, response) {
                                                         });
                                                     }
                                                 }
-                                                // followingUsername = rankTweets(followingUsername, rank);
                                             }
 
                                             var data = {status: "OK", items: followingUsername};
@@ -554,14 +542,10 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
-                                                        // console.log("following: true username: true");
-                                                        // console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
-                                                // console.log("following: true username: true");
-                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
@@ -569,7 +553,6 @@ app.post("/search", function (request, response) {
                                         }
                                     });
                                 } else {
-                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
@@ -578,8 +561,10 @@ app.post("/search", function (request, response) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (loggedInUser) {
-                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}).toArray(function (error, followees) {
-                                    // db.collection("users").find({username: {$in: loggedInUser.followinglist}}).toArray(function (error, followees) {
+                                    db.collection("users").aggregate({$match: {username: {$in: loggedInUser.followinglist}}}, 
+                                                                     {$unwind: '$tweets'}, 
+                                                                     {$sort: rank_query}, 
+                                                                     {$limit: limit}).toArray(function (error, followees) {
                                         if (error) {
                                             response.json({status: "error", error: error.toString()});
                                         } else if (followees) {
@@ -604,7 +589,6 @@ app.post("/search", function (request, response) {
                                                         }
                                                     }
                                                 }
-                                                // followingNoUsername = rankTweets(followingNoUsername, rank);
                                             }
 
                                             var data = {status: "OK", items: followingNoUsername};
@@ -613,19 +597,13 @@ app.post("/search", function (request, response) {
                                                     if (error) {
                                                         response.json({status: "error", error: error.toString()});
                                                     } else {
-                                                        // console.log("following: true username: false");
-                                                        // console.timeEnd("search");
                                                         response.json(data);
                                                     }
                                                 });
                                             } else {
-                                                // console.log("following: true username: false");
-                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         } else {
-                                            // console.log("following: true username: false");
-                                            // console.timeEnd("search");
                                             response.json({status: "OK", items: []});
                                         }
                                     });
@@ -636,8 +614,9 @@ app.post("/search", function (request, response) {
                         }
                     } else {
                         if (username) {
-                            db.collection("users").aggregate({$match: {username: username}}, {$unwind: '$tweets'}, {$sort: rank_query}, {$limit: limit}, function (error, searchedUser) {
-                            // db.collection("users").findOne({username: username}, function (error, searchedUser) {
+                            db.collection("users").aggregate({$match: {username: username}}, 
+                                                             {$unwind: '$tweets'}, {$sort: rank_query}, 
+                                                             {$limit: limit}, function (error, searchedUser) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (searchedUser) {
@@ -659,7 +638,6 @@ app.post("/search", function (request, response) {
                                                 });
                                             }
                                         }
-                                        // notFollowingUsername = rankTweets(notFollowingUsername, rank);
                                     }
 
                                     var data = {status: "OK", items: notFollowingUsername};
@@ -668,36 +646,30 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
-                                                // console.log("following: false username: true");
-                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
-                                        // console.log("following: false username: true");
-                                        // console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
-                                    // console.log("following: false username: true");
-                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
                         } else {
-                            // db.tweets.find().sort({weight:-1}).pretty()
                             var r_q = {};
                             if (rank === "time")
                                 r_q = {'timestamp': -1};
                             else
                                 r_q = {'timestamp':-1, 'weight':-1};
-                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).limit(limit).sort(r_q).toArray(function (error, tweets) {
-                            // db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, {timestamp: {$lte: timestamp}}]}).toArray(function (error, tweets) {
+                            db.collection("tweets").find({$and: [{content: {$regex: queryRegex}}, 
+                                                         {timestamp: {$lte: timestamp}}]})
+                                                         .limit(limit)
+                                                         .sort(r_q).toArray(function (error, tweets) {
                                 if (error) {
                                     response.json({status: "error", error: error.toString()});
                                 } else if (tweets) {
                                     var notFollowingNoUsername = [];
-                                    // console.log(tweets);
                                     if (!(parent !== "none" && (replies === false || replies === "false"))) {
                                         for (var i = 0; i < tweets.length && notFollowingNoUsername.length < limit; i++) {
                                             var tweet = tweets[i];
@@ -713,7 +685,6 @@ app.post("/search", function (request, response) {
                                                 });
                                             }
                                         }
-                                        // notFollowingNoUsername = rankTweets(notFollowingNoUsername, rank);
                                     }
 
                                     var data = {status: "OK", items: notFollowingNoUsername};
@@ -722,19 +693,13 @@ app.post("/search", function (request, response) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
-                                                // console.log("following: false username: false");
-                                                // console.timeEnd("search");
                                                 response.json(data);
                                             }
                                         });
                                     } else {
-                                        // console.log("following: false username: false");
-                                        // console.timeEnd("search");
                                         response.json(data);
                                     }
                                 } else {
-                                    // console.log("following: false username: false");
-                                    // console.timeEnd("search");
                                     response.json({status: "OK", items: []});
                                 }
                             });
