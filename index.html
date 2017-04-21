@@ -6,6 +6,35 @@
         <link rel="stylesheet" type="text/css" href="style.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+        
+        <style>
+            .tweetImgs img{
+                width: 200px;
+            }
+            
+            .tweetImgs {
+                display: inline;
+            }
+            
+            .userIcon {
+                content: url("img/tuser.png");
+                width: 40px; 
+                margin: 0px 20px 0px 5px;
+            }
+            
+            .icons {
+                padding-left: 63px;
+                height: 25px;
+                line-height: 25px;
+            }
+            
+            .icons img{
+                height: 25px;
+            }
+            
+            
+    
+        </style>
     </head>
     
     <body>
@@ -16,7 +45,7 @@
             <a href="/search">SEARCH</a>
             <a href="" id="profileClick">PROFILE</a>
             <a href="/">HOME</a>
-            <a href="/" style="float: left;">TWITTER</a>
+<!--            <a href="/" style="float: left;">TWITTER</a>-->
         </div> 
         
         
@@ -34,43 +63,46 @@
             </div>
 
             <div id="tweetsInfo">
-                
-                <form method="POST" action="/additem" id="additemForm">
-                    <p><p>
-                    <div class="formContent">
-                        <textarea name="content" id="content"></textarea> <br>
-                        <span style="text-transform: uppercase;font-size: 11px;">
-                            TOTAL WORD COUNT: <span id="count">0</span> 
-                        </span><br>
+
+                <p><p>
+                <div class="formContent">
+                    <textarea name="content" id="content"></textarea> <br>
+                    <span style="text-transform: uppercase;font-size: 11px;">
+                        TOTAL WORD COUNT: <span id="count">0</span> 
+                    </span><br>
+
+                    <input type="text" name="parent" placeholder="Reply: parent id"> <br>
+
+                    <form method="POST" action="/addmedia" enctype="multipart/form-data" id="uploadForm">
+                        <label style="padding:3px 1px 5px 5px;text-align:center; margin-right:5px">
+                        Media <input type="file" name="content" style=" display:none">
+                        </label>
+                        <button type="submit" id="tweetButton">Upload</button> 
+                    </form>
                     
-                        <input type="text" name="parent" placeholder="parent id"> <br>
-                        <input type="text" name="media" placeholder="[{idname, ...}]"> <br>
-                        <button type="submit" id="tweetButton">Tweet</button>   
-                    </div>
-                </form>
+                    
+                    <p>
+
+                </div>
+                
 
                 <div id="newsfeed">
                     <div class="tweet" ng-repeat = "tweet in newsfeed.items |orderBy:'-'">
-                        <img src='img/tuser.png' align='left' style="width: 60px; margin: 5px 5px 0px 5px;"> @{{tweet.username}}
+                        <img src='' class="userIcon" align='left'> @{{tweet.username}}
                         Id #{{tweet.id}} 
                         {{tweet.timestamp | date:'M/d/yyyy'}}
-                        <a href="" class="delete" id= "{{tweet.id}}"></a>
                         <br>
                         {{tweet.content}} 
                         <br>
                         <div class="tweetImgs" ng-repeat = "m in tweet.media">
                             <img src='/media/{{m}}'>
-<!--                            {{m}}-->
                         </div>
-<!--                        {{tweet.media}}-->
                         <div class="icons">
                             <!-- <img src="img/reply.png"> -->
-                            <img src="img/like.png" style="width: 22px" id="like" ng-click="handleLike(tweet.id, tweet.username)"> {{tweet.likes}}
+                            <img src="img/like.png" id="like" ng-click="handleLike(tweet.id, tweet.username)"> {{tweet.likes}}
                             <img src="img/retweetGray.png" id="retweet" ng-click="handleRetweet(tweet.id, tweet.content)"> {{tweet.retweets}}
                         </div>
                         <br>
-                       
-<!--                        <img src="media/6562230.User-128.png">-->
                         
                     </div>
                 </div>
@@ -138,29 +170,37 @@
                     var logout = $http.get("/logout");
                 });
                 
-                
-                $("#additemForm").submit(function (event) {
+                $("#tweetButton").click(function (event) {
                     event.preventDefault(); 
-                    var addtweet = $http.post("/additem", JSON.stringify({
-                        content: $("textarea[name='content']").val(), 
-                        parent: $("input[name='parent']").val(),
-                        media: $("input[name='media']").val()
-                    }));
-                                                 
-                                              
-                    addtweet.success(function (data) {
-                        if (data.status == "OK") {
-                            $("#content").val("");
-                            var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
-                            postToNewsfeed.success(function (d) {
-                                if (d.status == "OK") {
-                                    window.location ="/"
-                                } else {
-                                    $("#newsfeed").prepend("<p> <center>" + data.error);
-                                }
-                            });
-                        }
+                    var fd = new FormData($('#uploadForm')[0]);
+                    var upload = $http.post("/addmedia", fd, {
+                        transformRequest:angular.identity,
+                        headers: {'Content-Type': undefined}
                     });
+                    
+                    upload.success(function(data) {
+                        var addtweet = $http.post("/additem", JSON.stringify({
+                            content: $("textarea[name='content']").val(), 
+                            parent: $("input[name='parent']").val(),
+                            media: data.id
+                        }));
+
+
+                        addtweet.success(function (data) {
+                            if (data.status == "OK") {
+                                $("#content").val("");
+                                var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
+                                postToNewsfeed.success(function (d) {
+                                    if (d.status == "OK") {
+                                        window.location ="/"
+                                    } else {
+                                        $("#newsfeed").prepend("<p> <center>" + data.error);
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    
                 });
                 
                 $("#content").on('keyup', function() {

@@ -115,13 +115,7 @@ textarea:focus {outline:0;}
     padding-left: 5px;
 }
 
-.icons img {
-    width: 30px;
-    margin-left: 5px;
-}
-
-
-#tweetButton, #mediaRetrieve, #mediaUpload {
+#tweetButton, #mediaRetrieve, #mediaUpload, label {
     margin-top: 10px;
     border:1px solid #D4D4D4; 
     border-radius: 5px; 
@@ -129,9 +123,10 @@ textarea:focus {outline:0;}
     color: #798AA8 !important;
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-size:11px;
+    font-size:11px !important;
 }
-#tweetButton:hover, #mediaRetrieve:hover, #mediaUpload:hover {
+
+#tweetButton:hover, #mediaRetrieve:hover, #mediaUpload:hover, label:hover {
     color: #999EA8 !important;
     background-color: #FFF !important;
 }
@@ -204,9 +199,17 @@ textarea:focus {outline:0;}
     float: left;
 }
 
+::selection {
+    background-color: #798AA8;
+    color: #FFF;
+}
 
 @media only screen and (max-width: 1200px) {
     #tweetsInfo {
         width: 50%;
     }
+    .tweetImgs img{
+        width: 100px;
+    }
 }
+

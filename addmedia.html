@@ -23,7 +23,7 @@
                 <form method="POST" action="/addmedia" enctype="multipart/form-data" id="uploadForm">
                 <h2>Add Media</h2>
                 Media: <input type="file" name="content"> <br>
-                <button type="submit" id="mediaUpload" ng-click=mediaUpload()>Upload</button> 
+                <button type="submit" id="mediaUpload">Upload</button> 
                 </form>
 
 
@@ -50,14 +50,16 @@
             $("#mediaUpload").click(function(event) {
                 event.preventDefault();
                 var fd = new FormData($('#uploadForm')[0]);
+                alert(JSON.stringify($('#uploadForm')[0]));
+//                alert(JSON.stringify(fd));
                 var upload = $http.post("/addmedia", fd, {
                     transformRequest:angular.identity,
                     headers: {'Content-Type': undefined}
                 });
-                upload.success(function(data) {
-                    $(".replace").html("Your uploaded image id is "+ data.id + "<br><a href='/addmedia'>Try again</a>? <br>");
-//                    alert(data.id);
-                });
+//                upload.success(function(data) {
+//                    $(".replace").html("Your uploaded image id is "+ data.id + "<br><a href='/addmedia'>Try again</a>? <br>");
+////                    alert(data.id);
+//                });
             });
             
             $("#mediaRetrieve").click(function() {

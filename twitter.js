@@ -618,7 +618,7 @@ app.post("/search", function(req, res) {
                                         retweets: val[i].retweets,
                                         media: val[i].media
                                     });
-                                    count++;
+                                    count4++;
                                 
                             }
                             res.json({status: "OK",items: send4});
@@ -981,7 +981,7 @@ app.get('/media/:id', function (request, response) {
         if (doc) {
             db.collection("images").findOne({"imgid": imgid}, (error, imgFound) => {
                 if (imgFound) {
-                    console.log(imgFound.imgid + " "+ imgFound.type);
+//                    console.log(imgFound.imgid + " "+ imgFound.type);
                     
                     response.setHeader('Content-Type', imgFound.type);
                     response.end(imgFound.buffer.buffer);
