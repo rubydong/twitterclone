@@ -48,46 +48,26 @@ app.post("/adduser", function (request, response) {
     var password = request.body.password;
 
     if (username && email && password) {
-        memcached.get(username + password, function (error, userData) {
+        db.collection("users").findOne({$or: [{username: username}, {email: email}]}, function (error, document) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
-            } else if (userData) {
-                response.json({status: "error", error: "USERNAME ALREADY EXISTS"});
+            } else if (document) {
+                response.json({status: "error", error: "USERNAME/EMAIL ALREADY EXISTS"});
             } else {
-                memcached.get(email, function (error, emailData) {
+                var newUser = {
+                    username: username,
+                    email: email,
+                    password: password,
+                    verified: (Math.random() + 1).toString(36).substring(7),
+                    tweets: [],
+                    followers: [],
+                    following: []
+                };
+                db.collection("users").insertOne(newUser, function (error) {
                     if (error) {
                         response.json({status: "error", error: error.toString()});
-                    } else if (emailData) {
-                        response.json({status: "error", error: "EMAIL ALREADY EXISTS"});
-                    } else {
-                        var key = (Math.random() + 1).toString(36).substring(7)
-                        var newUser = {
-                            username: username,
-                            email: email,
-                            password: password,
-                            verified: (Math.random() + 1).toString(36).substring(7),
-                            followers: [],
-                            following: []
-                        };
-                        db.collection("users").insertOne(newUser, function (error) {
-                            if (error) {
-                                response.json({status: "error", error: error.toString()});
-                            } else {
-                                memcached.set(username + password, key, 0, function (error) {
-                                    if (error) {
-                                        response.json({status: "error", error: error.toString()});
-                                    } else {
-                                        memcached.set(email, {username: username, password: password, verified: key}, 0, function (error) {
-                                            if (error) {
-                                                response.json({status: "error", error: error.toString()});
-                                            } else {
-                                                response.json({status: "OK"});
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                    } else { 
+                        response.json({status: "OK"});
                     }
                 });
             }
@@ -108,18 +88,15 @@ app.post("/login", function (request, response) {
     var password = request.body.password;
 
     if (username && password) {
-        memcached.get(username + password, function (error, data) {
+        var query = {username: username, password: password, verified: "yes"};
+        db.collection("users").findOne(query, function (error, document) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
-            } else if (data) {
-                if (data === "yes") {
-                    response.cookie("key", username);
-                    response.json({status: "OK"});
-                } else {
-                    response.json({status: "error", error: "EMAIL NOT VERIFIED"});
-                }
+            } else if (document) {
+                response.cookie("key", username); //Communicates with key in sessions collection
+                response.json({status: "OK"});
             } else {
-                response.json({status: "error", error: "USERNAME/PASSWORD COMBINATION DOES NOT EXIST"});
+                response.json({status: "error", error: "USERNAME/PASSWORD COMBINATION DOES NOT EXIST OR IS NOT VERIFIED"});
             }
         });
     } else {
@@ -150,12 +127,12 @@ app.post("/verify", function (request, response) {
     var key = request.body.key;
 
     if (email && key) {
-        memcached.get(email, function (error, data) {
+        db.collection("users").findOne({email: email}, function (error, document) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
-            } else if (data) {
-                if (key === data.verified || key === "abracadabra") {
-                    memcached.set(data.username + data.password, "yes", 0, function (error, data) {
+            } else if (document) {
+                if (key === document.verified || key === "abracadabra") {
+                    db.collection("users").updateOne({email: email}, {$set: {verified: "yes"}}, function (error) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
@@ -243,7 +220,7 @@ app.get("/item/:id", function (request, response) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
-                            response.json({status: "OK", item: data});
+                            response.json({status: "OK", item: doc});
                         }
                     });
                 } else {
