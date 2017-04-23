@@ -324,9 +324,9 @@ app.post("/search", function (request, response) {
         var rankQuery = {timestamp: -1};
 
         //Assign values based on request
-        if (request.body.timestamp) {
-            timestamp = parseInt(request.body.timestamp) * 1000;
-        }
+//        if (request.body.timestamp) {
+//            timestamp = parseInt(request.body.timestamp) * 1000;
+//        }
         if (request.body.limit) {
             var reqLimit = parseInt(request.body.limit);
             limit = reqLimit > 99 ? 99 : reqLimit;
