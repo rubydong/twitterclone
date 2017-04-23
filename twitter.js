@@ -24,11 +24,14 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
     }
     db = database;
 
-    db.createIndex("tweets", {content: 1, username: 1}, {background: true}, function () {
+//    db.createIndex("tweets", {content: 1, username: 1}, {background: true}, function () {
 //    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
+    db.createIndex("tweets", {username: 1}, {background: true}, function () {
+    db.createIndex("tweets", {content: 1}, {background: true}, function () {
     db.createIndex("users", {username: 1}, {background: true}, function () {
     db.createIndex("users", {email: 1}, {background: true}, function () {
         console.log("Connected to MongoDB with indexes created");
+    });
     });
     });
     });
@@ -362,7 +365,7 @@ app.post("/search", function (request, response) {
                                 if (loggedInUser.following.indexOf(username) === -1) {
                                     response.json({status: "OK", items: []});
                                 } else {
-                                    db.collection("tweets").findOne({content: {$regex: queryRegex}, username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                                    db.collection("tweets").findOne({username: username, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                             .limit(limit)
 //                                                             .sort(rankQuery)
 //                                                             .toArray(function (error, tweets) {
@@ -397,7 +400,7 @@ app.post("/search", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (loggedInUser) {
-                                db.collection("tweets").findOne({content: {$regex: queryRegex}, username: {$in: loggedInUser.following}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                                db.collection("tweets").findOne({username: {$in: loggedInUser.following}, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                             .limit(limit)
 //                                                             .sort(rankQuery)
 //                                                             .toArray(function (error, tweets) {
@@ -429,7 +432,7 @@ app.post("/search", function (request, response) {
                     }
                 } else {
                     if (username) {
-                        db.collection("tweets").findOne({content: {$regex: queryRegex}, username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                        db.collection("tweets").findOne({username: username, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                     .limit(limit)
 //                                                     .sort(rankQuery)
 //                                                     .toArray(function (error, tweets) {
