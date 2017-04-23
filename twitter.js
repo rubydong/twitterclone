@@ -26,15 +26,16 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
 
 //    db.createIndex("tweets", {content: 1, username: 1}, {background: true}, function () {
 //    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
-    db.createIndex("tweets", {username: 1, content: 1}, {background: true}, function () {
-    db.createIndex("tweets", {content: 1}, {background: true}, function () {
+//    db.createIndex("tweets", {username: 1, content: 1}, {background: true}, function () {
+//    db.createIndex("tweets", {content: 1}, {background: true}, function () {
+    db.createIndex("tweets", {username: 1}, {background: true}, function () {
     db.createIndex("users", {username: 1}, {background: true}, function () {
     db.createIndex("users", {email: 1}, {background: true}, function () {
         console.log("Connected to MongoDB with indexes created");
     });
     });
     });
-    });
+//    });
 //    });
 
 });
@@ -296,6 +297,10 @@ function sortTweets(tweets) {
 }
 
 app.post("/search", function (request, response) {
+    var query = "";
+    if (request.body.q) {
+        query = request.body.q;
+    }
     var parent = "none";
     var replies = true;
     if (request.body.parent) {
@@ -311,7 +316,6 @@ app.post("/search", function (request, response) {
         //Assign defaults
         var timestamp = Date.now();
         var limit = 25;
-        var query = "";
         var username = "";
         var following = true;
 //        var rank = "interest";
@@ -325,9 +329,6 @@ app.post("/search", function (request, response) {
             var reqLimit = parseInt(request.body.limit);
             limit = reqLimit > 99 ? 99 : reqLimit;
         }
-        if (request.body.q) {
-            query = request.body.q;
-        }
         if (request.body.username) {
             username = request.body.username;
         }
@@ -339,15 +340,15 @@ app.post("/search", function (request, response) {
 //        }
 
 //        var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
-        var queryRegex = query ? "^" + query : ".*";
+//        var queryRegex = query ? "^" + query : ".*";
         var sessionKey = request.cookies.key;
         var mcKey; //Memcached key
         if (following === true || following === "true") {
-            mcKey = [sessionKey, query.replace(/\s+/g, ""), username].toString();
+            mcKey = [sessionKey, username].toString();
         } else if (username) {
-            mcKey = [query.replace(/\s+/g, ""), username].toString();
+            mcKey = [username].toString();
         } else {
-            mcKey = [limit, query.replace(/\s+/g, ""), username].toString();
+            mcKey = [limit, username].toString();
         }
 
         memcached2.get(mcKey, function (error, data) {
@@ -365,7 +366,7 @@ app.post("/search", function (request, response) {
                                 if (loggedInUser.following.indexOf(username) === -1) {
                                     response.json({status: "OK", items: []});
                                 } else {
-                                    db.collection("tweets").findOne({username: username, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                                    db.collection("tweets").findOne({username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                             .limit(limit)
 //                                                             .sort(rankQuery)
 //                                                             .toArray(function (error, tweets) {
@@ -400,7 +401,7 @@ app.post("/search", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (loggedInUser) {
-                                db.collection("tweets").findOne({username: {$in: loggedInUser.following}, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                                db.collection("tweets").findOne({username: {$in: loggedInUser.following}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                             .limit(limit)
 //                                                             .sort(rankQuery)
 //                                                             .toArray(function (error, tweets) {
@@ -432,7 +433,7 @@ app.post("/search", function (request, response) {
                     }
                 } else {
                     if (username) {
-                        db.collection("tweets").findOne({username: username, content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
+                        db.collection("tweets").findOne({username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
 //                                                     .limit(limit)
 //                                                     .sort(rankQuery)
 //                                                     .toArray(function (error, tweets) {
@@ -458,7 +459,7 @@ app.post("/search", function (request, response) {
                             }
                         });
                     } else {
-                        db.collection("tweets").find({content: {$regex: queryRegex}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1})
+                        db.collection("tweets").find({}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1})
                                                      .limit(limit)
 //                                                     .sort(rankQuery)
                                                      .toArray(function (error, tweets) {
