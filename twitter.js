@@ -18,15 +18,17 @@ var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
 
 // connecting to m3-2
-MongoClient.connect("mongodb://130.245.168.183:27017/twitter", function (error, database) {
+MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, database) {
     if (error) {
         return console.error(error);
     }
     db = database;
 
     db.createIndex("users", {username: 1}, {background: true}, function () {
-    db.createIndex("tweets", {timestamp: 1, content: "text"}, {background: true}, function () {
+    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
+    db.createIndex("tweets", {content: "text"}, {background: true}, function () {
         console.log("Connected to MongoDB with indexes created");
+    });
     });
     });
 
@@ -60,6 +62,7 @@ app.post("/adduser", function (request, response) {
                     } else if (emailData) {
                         response.json({status: "error", error: "EMAIL ALREADY EXISTS"});
                     } else {
+                        var key = (Math.random() + 1).toString(36).substring(7)
                         var newUser = {
                             username: username,
                             email: email,
@@ -72,11 +75,11 @@ app.post("/adduser", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
-                                memcached.set(username + password, verified, 0, function (error) {
+                                memcached.set(username + password, key, 0, function (error) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else {
-                                        memcached.set(email, {username: username, password: password, verified: verified}, 0, function (error) {
+                                        memcached.set(email, {username: username, password: password, verified: key}, 0, function (error) {
                                             if (error) {
                                                 response.json({status: "error", error: error.toString()});
                                             } else {
@@ -205,7 +208,7 @@ app.post("/additem", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
-                    response.json({status: "OK"});
+                    response.json({status: "OK", id: id});
                 }
             });
         }
@@ -691,7 +694,7 @@ app.post("/item/:id/like", function (request, response) {
                     }
                 });
             } else {
-                response.json({status: "error", error: "LIKING TWEET ALREADY LIKED OR UNLIKING TWEET NOT ALREADY LIKED"});
+                response.json({status: "OK"});
             }
         } else {
             response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
