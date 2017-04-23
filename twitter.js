@@ -339,7 +339,7 @@ app.post("/search", function (request, response) {
 //        }
 
 //        var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
-        var queryRegex = "^" + query;
+        var queryRegex = query ? "^" + query : ".*";
         var sessionKey = request.cookies.key;
         var mcKey; //Memcached key
         if (following === true || following === "true") {
