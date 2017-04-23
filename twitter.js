@@ -26,7 +26,7 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
 
 //    db.createIndex("tweets", {content: 1, username: 1}, {background: true}, function () {
 //    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
-    db.createIndex("tweets", {username: 1}, {background: true}, function () {
+    db.createIndex("tweets", {username: 1, content: 1}, {background: true}, function () {
     db.createIndex("tweets", {content: 1}, {background: true}, function () {
     db.createIndex("users", {username: 1}, {background: true}, function () {
     db.createIndex("users", {email: 1}, {background: true}, function () {
