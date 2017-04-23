@@ -312,6 +312,8 @@ app.post("/search", function (request, response) {
 
     if (parent !== "none" && (replies === false || replies === "false")) {
         response.json({status: "OK", items: []});
+    } else if (query) {
+        response.json({status: "OK", items: []});
     } else {
         //Assign defaults
         var timestamp = Date.now();
