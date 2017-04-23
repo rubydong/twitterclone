@@ -25,10 +25,8 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
     db = database;
 
     db.createIndex("users", {username: 1}, {background: true}, function () {
-    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
-    db.createIndex("tweets", {content: "text"}, {background: true}, function () {
+    db.createIndex("media", {_id: 1}, {background: true}, function () {
         console.log("Connected to MongoDB with indexes created");
-    });
     });
     });
 
@@ -196,9 +194,7 @@ app.post("/additem", function (request, response) {
         username: request.cookies.key,
         content: request.body.content,
         timestamp: Date.now(),
-        media: media,
-        likes: 0,
-        likers: []
+        media: media
     };
     db.collection("tweets").insertOne(tweet, function (error) {
         if (error) {
@@ -232,13 +228,28 @@ app.post("/item", function (request, response) {
 
 //Grading script
 app.get("/item/:id", function (request, response) {
-    memcached.get(request.params.id + "item", function (error, data) {
+    var id = request.params.id;
+    memcached.get(id + "item", function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
             response.json({status: "OK", item: data});
         } else {
-            response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
+            db.collection("tweets").findOne({_id: id}, function (error, doc)  {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (doc) {
+                    memcached.set(id + "item", doc, 0, function (error) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else {
+                            response.json({status: "OK", item: data});
+                        }
+                    });
+                } else {
+                    response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
+                }
+            });
         }
     });
 });
@@ -252,24 +263,17 @@ app.delete("/item/:id", function (request, response) {
             response.json({status: "error", error: error.toString()});
         } else if (doc.value) {
             var media = doc.value.media;
-            memcached.del(id + "item", function (error) {
+            db.collection("media").deleteMany({_id: {$in: media}}, function (error) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
-                    if (media.length > 0) {
-                        media.forEach(function (mediaId, index, array) {
-                            memcached.del(mediaId + "media", function (error) {
-                                if (error) {
-                                    response.json({status: "error", error: error.toString()});
-                                }
-                                if (index === array.length - 1) {
-                                    response.json({status: "OK"});
-                                }
-                            });
-                        });
-                    } else {
-                        response.json({status: "OK"});
-                    }
+                    memcached.del(id + "item", function (error) {
+                        if (error) {
+                            response.json({status: "error", error: error.toString()});
+                        } else {
+                            response.json({status: "OK"});
+                        }
+                    });
                 }
             });
         } else {
@@ -295,6 +299,20 @@ function getParentQuery(parent, replies) {
 app.get("/search", function (request, response) {
     response.sendFile(path.join(__dirname + "/search.html"));
 });
+
+function compareTimestamp(a, b) {
+    if (a.timestamp > b.timestamp) {
+        return -1;
+    }
+    if (a.timestamp < b.timestamp) {
+        return 1;
+    }
+    return 0;
+}
+
+function sortTweets(tweets) {
+    return tweets.sort(compareTimestamp);;
+}
 
 app.post("/search", function (request, response) {
     var parent = "none";
@@ -324,7 +342,7 @@ app.post("/search", function (request, response) {
         }
         if (request.body.limit) {
             var reqLimit = parseInt(request.body.limit);
-            limit = reqLimit > 100 ? 100 : reqLimit;
+            limit = reqLimit > 99 ? 99 : reqLimit;
         }
         if (request.body.q) {
             query = request.body.q;
@@ -339,6 +357,7 @@ app.post("/search", function (request, response) {
 //            rank = request.body.rank;
 //        }
 
+        var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
         var sessionKey = request.cookies.key;
         var mcKey = following === true || following === "true"
                     ? [sessionKey, request.body.timestamp, limit, query.replace(/\s+/g, ""), username, parent, replies].toString()
@@ -356,13 +375,14 @@ app.post("/search", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (loggedInUser) {
-                                db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {$text: {$search: query}}, {username: username},
+                                db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {content: {$regex: queryRegex}}, {username: username},
                                                                     getParentQuery(parent, replies)]})
                                                              .limit(limit)
-                                                             .sort(rankQuery).toArray(function (error, tweets) {
+                                                             .toArray(function (error, tweets) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else if (tweets) {
+                                        tweets = sortTweets(tweets);
                                         var data = {status: "OK", items: tweets};
                                         if (tweets.length === limit) {
                                             memcached.set(mcKey, data, 0, function (error) {
@@ -388,12 +408,13 @@ app.post("/search", function (request, response) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (loggedInUser) {
-                                db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {$text: {$search: query}}, {username: {$in: loggedInUser.following}}, getParentQuery(parent, replies)]})
+                                db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {content: {$regex: queryRegex}}, {username: {$in: loggedInUser.following}}, getParentQuery(parent, replies)]})
                                                              .limit(limit)
-                                                             .sort(rankQuery).toArray(function (error, tweets) {
+                                                             .toArray(function (error, tweets) {
                                     if (error) {
                                         response.json({status: "error", error: error.toString()});
                                     } else if (tweets) {
+                                        tweets = sortTweets(tweets);
                                         var data = {status: "OK", items: tweets};
                                         if (tweets.length === limit) {
                                             memcached.set(mcKey, data, 0, function (error) {
@@ -417,13 +438,14 @@ app.post("/search", function (request, response) {
                     }
                 } else {
                     if (username) {
-                        db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {$text: {$search: query}}, {username: username},
+                        db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {content: {$regex: queryRegex}}, {username: username},
                                                             getParentQuery(parent, replies)]})
                                                      .limit(limit)
-                                                     .sort(rankQuery).toArray(function (error, tweets) {
+                                                     .toArray(function (error, tweets) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (tweets) {
+                                tweets = sortTweets(tweets);
                                 var data = {status: "OK", items: tweets};
                                 if (tweets.length === limit) {
                                     memcached.set(mcKey, data, 0, function (error) {
@@ -441,12 +463,13 @@ app.post("/search", function (request, response) {
                             }
                         });
                     } else {
-                        db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {$text: {$search: query}}, getParentQuery(parent, replies)]})
+                        db.collection("tweets").find({$and: [{timestamp: {$lte: timestamp}}, {content: {$regex: queryRegex}}, getParentQuery(parent, replies)]})
                                                      .limit(limit)
-                                                     .sort(rankQuery).toArray(function (error, tweets) {
+                                                     .toArray(function (error, tweets) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else if (tweets) {
+                                tweets = sortTweets(tweets);
                                 var data = {status: "OK", items: tweets};
                                 if (tweets.length === limit) {
                                     memcached.set(mcKey, data, 0, function (error) {
@@ -660,46 +683,7 @@ app.post("/follow", function (request, response) {
 
 //Grading script
 app.post("/item/:id/like", function (request, response) {
-    var id = request.params.id;
-    var liker = request.cookies.key;
-    var like = true;
-    if (request.body.hasOwnProperty("like")) {
-        like = request.body.like;
-    }
-
-    memcached.get(id + "item", function (error, data) {
-        if (error) {
-            response.json({status: "error", error: error.toString()});
-        } else if (data) {
-            var likers = doc.likers;
-            var alreadyLiked = false;
-            if (likers.indexOf(liker) > -1) {
-                alreadyLiked = true;
-            }
-
-            if (!alreadyLiked && (like === true || like === "true")) {
-                db.collection("tweets").updateOne({_id: id}, {$inc: {likes: 1}, $addToSet: {likers: liker}}, function (error) {
-                    if (error) {
-                        response.json({status: "error", error: error.toString()});
-                    } else {
-                        response.json({status: "OK"});
-                    }
-                });
-            } else if (alreadyLiked && (like === false || like === "false")) {
-                db.collection("tweets").updateOne({_id: id}, {$inc: {likes: -1}, $pull: {likers: liker}}, function (error) {
-                    if (error) {
-                        response.json({status: "error", error: error.toString()});
-                    } else {
-                        response.json({status: "OK"});
-                    }
-                });
-            } else {
-                response.json({status: "OK"});
-            }
-        } else {
-            response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
-        }
-    });
+    response.json({status: "OK"});
 });
 
 //Front-end
@@ -712,7 +696,7 @@ app.post("/addmedia", upload.single("content"), function (request, response) {
     var id = new ObjectID().toHexString();
 
     var media = {_id: id, type: request.file.mimetype, buffer: request.file.buffer};
-    memcached.set(id + "media", media, 0, function (error) {
+    db.collection("media").insertOne(media, function (error) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else {
@@ -725,12 +709,12 @@ app.post("/addmedia", upload.single("content"), function (request, response) {
 app.get("/media/:id", function (request, response) {
     var id = request.params.id;
 
-    memcached.get(id + "media", function (error, data) {
+    db.collection("media").findOne({_id: id}, function (error, media) {
         if (error) {
             response.json({status: "error", error: error.toString()});
-        } else if (data) {
-            response.setHeader("Content-Type", data.type);
-            response.end(data.buffer.buffer);
+        } else if (media) {
+            response.setHeader("Content-Type", media.type);
+            response.end(media.buffer.buffer);
         } else {
             response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
         }
