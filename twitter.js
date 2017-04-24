@@ -16,7 +16,7 @@ app.use(express.static(__dirname));
 app.use(cookieParser());
 app.set("trust proxy", 1); //Trust first proxy
 
-MongoClient.connect("mongodb://localhost:27017/twitter", (err,database) => {
+MongoClient.connect("mongodb://130.245.168.251:27017/twitter", (err,database) => {
 //MongoClient.connect("mongodb://130.245.168.183:27017/twitter?replicaSet=twitter&readPreference=primary",function(error,database) {
 //MongoClient.connect("mongodb://130.245.168.251:27017,130.245.168.182:27017,130.245.168.183:27017,130.245.168.185:27017,130.245.168.187:27017/twitter?replicaSet=twitter&readPreference=primary", function (error, database) {
 //MongoClient.connect("mongodb://localhost:27017/twitter", function (error, database) {
@@ -829,13 +829,19 @@ app.post("/didilike", function(request, response) {
     var user = request.body.user;
     db.collection("tweets").findOne({"id": id}, (error, doc) => {
         if (doc) {
+            console.log(JSON.stringify(doc));
             var liked = false;
-            console.log(doc.likers);
-            for (var i = 0; i < doc.likers.length; i++) {
-                if (doc.likers[i] == user)
-                    liked = true;       
+            console.log("likers list is.. " + doc.likers);
+            if (doc.likers) {
+                console.log("it shouldn't go in");
+                for (var i = 0; i < doc.likers.length; i++) {
+                    if (doc.likers[i] == user)
+                        liked = true;       
+                }
+                response.json({status: "OK", liked: liked})
+            } else {
+                response.json({status: "error", error: "Likers are undefined"});
             }
-            response.json({status: "OK", liked: liked})
         }
     });
 });
@@ -858,6 +864,7 @@ app.post("/item/:id/like", function (request, response) {
             db.collection("tweets").findOne({"id": id}, (error, doc) => {
                 //if the tweet exists in tweet database
                 if (doc) {
+                    console.log("found doc");
                     var tweetUser = doc.username;
                     var likers = doc.likers;
                     var alreadyLiked = false;

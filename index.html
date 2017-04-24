@@ -105,6 +105,7 @@
                     JSON.stringify({ id: id, user: username}));
                     likedAlready.success(function (data) {
                         if (data.status == "OK") {
+                            alert("did i even try");
                             var likePost = $http.post("/item/"+id+"/like",  
                             JSON.stringify({like: !data.liked}));
                             likePost.success(function (data) {
@@ -115,6 +116,7 @@
                             });
                         }
                     });
+                 
                 }
                 
                 $scope.handleRetweet = function (parent, content, media) {
@@ -169,7 +171,7 @@
                                 var postToNewsfeed = $http.post("/item", JSON.stringify({itemId: data.id}));
                                 postToNewsfeed.success(function (d) {
                                     if (d.status == "OK") {
-                                        window.location ="/"
+                                        window.location ="/profile/" + $scope.userinfo.user.username;
                                     } else {
                                         $("#newsfeed").prepend("<p> <center>" + data.error);
                                     }
