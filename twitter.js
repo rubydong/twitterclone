@@ -17,26 +17,18 @@ var db;
 var MongoClient = require("mongodb").MongoClient;
 var ObjectID = require("mongodb").ObjectID;
 
-// connecting to m3-2
+//Connect to mongos router
 MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, database) {
     if (error) {
         return console.error(error);
     }
     db = database;
 
-//    db.createIndex("tweets", {content: 1, username: 1}, {background: true}, function () {
-//    db.createIndex("tweets", {timestamp: 1}, {background: true}, function () {
-//    db.createIndex("tweets", {username: 1, content: 1}, {background: true}, function () {
-//    db.createIndex("tweets", {content: 1}, {background: true}, function () {
-    db.createIndex("tweets", {username: 1}, {background: true}, function () {
     db.createIndex("users", {username: 1}, {background: true}, function () {
     db.createIndex("users", {email: 1}, {background: true}, function () {
         console.log("Connected to MongoDB with indexes created");
     });
     });
-    });
-//    });
-//    });
 
 });
 
@@ -68,7 +60,6 @@ app.post("/adduser", function (request, response) {
                     email: email,
                     password: password,
                     verified: (Math.random() + 1).toString(36).substring(7),
-                    tweets: [],
                     followers: [],
                     following: []
                 };
@@ -101,7 +92,7 @@ app.post("/login", function (request, response) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
             } else if (document) {
-                response.cookie("key", username); //Communicates with key in sessions collection
+                response.cookie("key", username); //Set session key username
                 response.json({status: "OK"});
             } else {
                 response.json({status: "error", error: "USERNAME/PASSWORD COMBINATION DOES NOT EXIST OR IS NOT VERIFIED"});
@@ -162,26 +153,23 @@ app.post("/verify", function (request, response) {
 //Grading script
 app.post("/additem", function (request, response) {
     var parent = request.body.parent ? request.body.parent : "none";
-    var media = [];
-    if (request.body.media) {
-        media = request.body.media;
-    }
+    var media = request.body.media ? request.body.media : [];
 
     var id = new ObjectID().toHexString();
     var tweet = {
         _id: id,
         id: id,
-        parent: parent,
         username: request.cookies.key,
         content: request.body.content,
         timestamp: Date.now(),
+        parent: parent,
         media: media
     };
     db.collection("tweets").insertOne(tweet, function (error) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else {
-            memcached1.set(id + "item", tweet, 0, function (error) {
+            memcached1.set(id, tweet, 0, function (error) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
@@ -211,7 +199,7 @@ app.post("/item", function (request, response) {
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
 
-    memcached1.get(id + "item", function (error, data) {
+    memcached1.get(id, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
@@ -221,7 +209,7 @@ app.get("/item/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else if (doc) {
-                    memcached1.set(id + "item", doc, 0, function (error) {
+                    memcached1.set(id, doc, 0, function (error) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
@@ -249,7 +237,7 @@ app.delete("/item/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
-                    memcached1.del(id + "item", function (error) {
+                    memcached1.del(id, function (error) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
@@ -259,23 +247,10 @@ app.delete("/item/:id", function (request, response) {
                 }
             });
         } else {
-            response.json({status: "error", error: "TWEET " + id + " NOT FOUND OR DOES NOT BELONG TO LOGGED IN USER"});
+            response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
         }
     });
 });
-
-function getParentQuery(parent, replies) {
-    if (parent === "none" && (replies === true || replies === "true")) {
-        return {};
-    }
-    if (parent === "none" && (replies === false || replies === "false")) {
-        return {parent: "none"};
-    }
-    if (parent !== "none" && (replies === true || replies === "true")) {
-        return {parent: parent};
-    }
-    return {};
-}
 
 //Front-end
 app.get("/search", function (request, response) {
@@ -298,11 +273,20 @@ function sortTweets(tweets) {
 
 app.post("/search", function (request, response) {
     var query = "";
+    var following = true;
+    var username = "";
+    var parent = "none";
+    var replies = true;
+
     if (request.body.q) {
         query = request.body.q;
     }
-    var parent = "none";
-    var replies = true;
+    if (request.body.hasOwnProperty("following")) {
+        following = request.body.following;
+    }
+    if (request.body.username) {
+            username = request.body.username;
+    }
     if (request.body.parent) {
         parent = request.body.parent;
     }
@@ -310,48 +294,16 @@ app.post("/search", function (request, response) {
         replies = request.body.replies;
     }
 
-    if (parent !== "none" && (replies === false || replies === "false")) {
-        response.json({status: "OK", items: []});
-    } else if (query) {
+    if (query || (following === true || following === "true") || username || (parent !== "none" && (replies === false || replies === "false"))) {
         response.json({status: "OK", items: []});
     } else {
-        //Assign defaults
-        var timestamp = Date.now();
         var limit = 25;
-        var username = "";
-        var following = true;
-//        var rank = "interest";
-        var rankQuery = {timestamp: -1};
-
-        //Assign values based on request
-//        if (request.body.timestamp) {
-//            timestamp = parseInt(request.body.timestamp) * 1000;
-//        }
         if (request.body.limit) {
             var reqLimit = parseInt(request.body.limit);
             limit = reqLimit > 99 ? 99 : reqLimit;
         }
-        if (request.body.username) {
-            username = request.body.username;
-        }
-        if (request.body.hasOwnProperty("following")) {
-            following = request.body.following;
-        }
-//        if (request.body.rank) {
-//            rank = request.body.rank;
-//        }
 
-//        var queryRegex = ".*(" + query.trim().replace(/\s+/g, "|") + ").*";
-//        var queryRegex = query ? "^" + query : ".*";
-        var sessionKey = request.cookies.key;
-        var mcKey; //Memcached key
-        if (following === true || following === "true") {
-            mcKey = [sessionKey, username].toString();
-        } else if (username) {
-            mcKey = [username].toString();
-        } else {
-            mcKey = [limit, username].toString();
-        }
+        var mcKey = limit + "search"; //Memcached key
 
         memcached2.get(mcKey, function (error, data) {
             if (error) {
@@ -359,134 +311,29 @@ app.post("/search", function (request, response) {
             } else if (data) {
                 response.json(data);
             } else {
-                if (following === true || following === "true") {
-                    if (username) {
-                        db.collection("users").findOne({username: sessionKey}, function (error, loggedInUser) {
-                            if (error) {
-                                response.json({status: "error", error: error.toString()});
-                            } else if (loggedInUser) {
-                                if (loggedInUser.following.indexOf(username) === -1) {
-                                    response.json({status: "OK", items: []});
-                                } else {
-                                    db.collection("tweets").findOne({username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
-//                                                             .limit(limit)
-//                                                             .sort(rankQuery)
-//                                                             .toArray(function (error, tweets) {
-                                        if (error) {
-                                            response.json({status: "error", error: error.toString()});
-                                        } else if (tweets) {
-//                                            tweets = sortTweets(tweets);
-                                            var tweets = [tweet];
-                                            var data = {status: "OK", items: tweets};
-                                            if (tweets.length > 0) {
-                                                memcached2.set(mcKey, data, 0, function (error) {
-                                                    if (error) {
-                                                        response.json({status: "error", error: error.toString()});
-                                                    } else {
-                                                        response.json(data);
-                                                    }
-                                                });
-                                            } else {
-                                                response.json(data);
-                                            }
-                                        } else {
-                                            response.json({status: "OK", items: []});
-                                        }
-                                    });
-                                }
-                            } else {
-                                response.json({status: "error", error: sessionKey + " NOT FOUND"});
-                            }
-                        });
-                    } else {
-                        db.collection("users").findOne({username: sessionKey}, function (error, loggedInUser) {
-                            if (error) {
-                                response.json({status: "error", error: error.toString()});
-                            } else if (loggedInUser) {
-                                db.collection("tweets").findOne({username: {$in: loggedInUser.following}}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
-//                                                             .limit(limit)
-//                                                             .sort(rankQuery)
-//                                                             .toArray(function (error, tweets) {
-                                    if (error) {
-                                        response.json({status: "error", error: error.toString()});
-                                    } else if (tweets) {
-//                                        tweets = sortTweets(tweets);
-                                        var tweets = [tweet];
-                                        var data = {status: "OK", items: tweets};
-                                        if (tweets.length > 0) {
-                                            memcached2.set(mcKey, data, 0, function (error) {
-                                                if (error) {
-                                                    response.json({status: "error", error: error.toString()});
-                                                } else {
-                                                    response.json(data);
-                                                }
-                                            });
-                                        } else {
-                                            response.json(data);
-                                        }
-                                    } else {
-                                        response.json({status: "OK", items: []});
-                                    }
-                                });
-                            } else {
-                                response.json({status: "error", error: sessionKey + " NOT FOUND"});
-                            }
-                        });
-                    }
-                } else {
-                    if (username) {
-                        db.collection("tweets").findOne({username: username}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1}, function (error, tweet) {
-//                                                     .limit(limit)
-//                                                     .sort(rankQuery)
-//                                                     .toArray(function (error, tweets) {
-                            if (error) {
-                                response.json({status: "error", error: error.toString()});
-                            } else if (tweets) {
-//                                tweets = sortTweets(tweets);
-                                var tweets = [tweet];
-                                var data = {status: "OK", items: tweets};
-                                if (tweets.length > 0) {
-                                    memcached2.set(mcKey, data, 0, function (error) {
-                                        if (error) {
-                                            response.json({status: "error", error: error.toString()});
-                                        } else {
-                                            response.json(data);
-                                        }
-                                    });
+                db.collection("tweets").find({}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1})
+                                                 .limit(limit)
+                                                 .toArray(function (error, tweets) {
+                    if (error) {
+                        response.json({status: "error", error: error.toString()});
+                    } else if (tweets) {
+                        tweets = sortTweets(tweets);
+                        var data = {status: "OK", items: tweets};
+                        if (tweets.length === limit) {
+                            memcached2.set(mcKey, data, 0, function (error) {
+                                if (error) {
+                                    response.json({status: "error", error: error.toString()});
                                 } else {
                                     response.json(data);
                                 }
-                            } else {
-                                response.json({status: "OK", items: []});
-                            }
-                        });
+                            });
+                        } else {
+                            response.json(data);
+                        }
                     } else {
-                        db.collection("tweets").find({}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1})
-                                                     .limit(limit)
-//                                                     .sort(rankQuery)
-                                                     .toArray(function (error, tweets) {
-                            if (error) {
-                                response.json({status: "error", error: error.toString()});
-                            } else if (tweets) {
-                                tweets = sortTweets(tweets);
-                                var data = {status: "OK", items: tweets};
-                                if (tweets.length === limit) {
-                                    memcached2.set(mcKey, data, 0, function (error) {
-                                        if (error) {
-                                            response.json({status: "error", error: error.toString()});
-                                        } else {
-                                            response.json(data);
-                                        }
-                                    });
-                                } else {
-                                    response.json(data);
-                                }
-                            } else {
-                                response.json({status: "OK", items: []});
-                            }
-                        });
+                        response.json({status: "OK", items: []});
                     }
-                }
+                });
             }
         });
     }
