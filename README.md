@@ -1,7 +1,7 @@
 # Twitterclone
 A twitter clone coded using the MEAN stack for our cloud computing course
 
-![a](https://cloud.githubusercontent.com/assets/14133821/25320786/b4f60850-2877-11e7-9acc-ed62b53bbbae.png)
-![c](https://cloud.githubusercontent.com/assets/14133821/25320784/b4e799c8-2877-11e7-8d48-4f2c3ae0d424.png)
-![b](https://cloud.githubusercontent.com/assets/14133821/25320785/b4efd12e-2877-11e7-984a-8efcc404f598.png)
 
+![a](https://cloud.githubusercontent.com/assets/14133821/25571427/863b3fb8-2dfd-11e7-932a-b7292e7dad8c.png)
+![tweet](https://cloud.githubusercontent.com/assets/14133821/25571490/4d1a9f0c-2dfe-11e7-9da1-e996144918b2.png)
+![search](https://cloud.githubusercontent.com/assets/14133821/25571491/4d1b2300-2dfe-11e7-9286-4edffdac1a94.png)
