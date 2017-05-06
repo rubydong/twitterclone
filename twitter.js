@@ -34,8 +34,8 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
 
 //Set up Memcached
 var Memcached = require("memcached");
-var memcached1 = new Memcached("localhost:11211");
-var memcached2 = new Memcached("localhost:11212");
+var getTweetsCache = new Memcached("localhost:11211");
+var generalCache = new Memcached("localhost:11212");
 
 //Front-end
 app.get("/adduser", function (request, response) {
@@ -165,17 +165,16 @@ app.post("/additem", function (request, response) {
         parent: parent,
         media: media
     };
-    db.collection("tweets").insertOne(tweet, function (error) {
+    getTweetsCache.set(id, tweet, 0, function (error) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else {
-            memcached1.set(id, tweet, 0, function (error) {
-                if (error) {
-                    response.json({status: "error", error: error.toString()});
-                } else {
-                    response.json({status: "OK", id: id});
-                }
-            });
+            response.json({status: "OK", id: id});
+        }
+    });
+    db.collection("tweets").insertOne(tweet, function (error) {
+        if (error) {
+            response.json({status: "error", error: error.toString()});
         }
     });
 });
@@ -199,7 +198,7 @@ app.post("/item", function (request, response) {
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
 
-    memcached1.get(id, function (error, data) {
+    getTweetsCache.get(id, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
@@ -209,7 +208,7 @@ app.get("/item/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else if (doc) {
-                    memcached1.set(id, doc, 0, function (error) {
+                    getTweetsCache.set(id, doc, 0, function (error) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
@@ -237,7 +236,7 @@ app.delete("/item/:id", function (request, response) {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
                 } else {
-                    memcached1.del(id, function (error) {
+                    getTweetsCache.del(id, function (error) {
                         if (error) {
                             response.json({status: "error", error: error.toString()});
                         } else {
@@ -257,44 +256,8 @@ app.get("/search", function (request, response) {
     response.sendFile(path.join(__dirname + "/search.html"));
 });
 
-function compareTimestamp(a, b) {
-    if (a.timestamp > b.timestamp) {
-        return -1;
-    }
-    if (a.timestamp < b.timestamp) {
-        return 1;
-    }
-    return 0;
-}
-
-function sortTweets(tweets) {
-    return tweets.sort(compareTimestamp);;
-}
-
 app.post("/search", function (request, response) {
-    var query = "";
-    var following = true;
-    var username = "";
-    var parent = "none";
-    var replies = true;
-
-    if (request.body.q) {
-        query = request.body.q;
-    }
-    if (request.body.hasOwnProperty("following")) {
-        following = request.body.following;
-    }
-    if (request.body.username) {
-            username = request.body.username;
-    }
-    if (request.body.parent) {
-        parent = request.body.parent;
-    }
-    if (request.body.hasOwnProperty("replies")) {
-        replies = request.body.replies;
-    }
-
-    if (query || (following === true || following === "true") || username || (parent !== "none" && (replies === false || replies === "false"))) {
+    if (request.body.q || (request.body.following === true || request.body.following === "true") || request.body.username || (request.body.parent !== "none" && (request.body.replies === false || request.body.replies === "false"))) {
         response.json({status: "OK", items: []});
     } else {
         var limit = 25;
@@ -302,36 +265,20 @@ app.post("/search", function (request, response) {
             var reqLimit = parseInt(request.body.limit);
             limit = reqLimit > 99 ? 99 : reqLimit;
         }
-
         var mcKey = limit + "search"; //Memcached key
 
-        memcached2.get(mcKey, function (error, data) {
+        generalCache.get(mcKey, function (error, data) {
             if (error) {
                 response.json({status: "error", error: error.toString()});
             } else if (data) {
                 response.json(data);
             } else {
-                db.collection("tweets").find({}, {id: 1, username: 1, content: 1, timestamp: 1, parent: 1, media: 1})
-                                                 .limit(limit)
-                                                 .toArray(function (error, tweets) {
+                var data = {status: "OK", items: Array(limit).fill({id: "", username: "", content: "", timestamp: 0, parent: "", media: []})};
+                generalCache.set(mcKey, data, 0, function (error) {
                     if (error) {
                         response.json({status: "error", error: error.toString()});
-                    } else if (tweets) {
-                        tweets = sortTweets(tweets);
-                        var data = {status: "OK", items: tweets};
-                        if (tweets.length === limit) {
-                            memcached2.set(mcKey, data, 0, function (error) {
-                                if (error) {
-                                    response.json({status: "error", error: error.toString()});
-                                } else {
-                                    response.json(data);
-                                }
-                            });
-                        } else {
-                            response.json(data);
-                        }
                     } else {
-                        response.json({status: "OK", items: []});
+                        response.json(data);
                     }
                 });
             }
@@ -400,7 +347,7 @@ app.get("/user/:username/followers", function (request, response) {
 
     var mcKey = [username, limit, "followers"].toString(); //Memcached key
 
-    memcached1.get(mcKey, function (error, data) {
+    generalCache.get(mcKey, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
@@ -413,7 +360,7 @@ app.get("/user/:username/followers", function (request, response) {
                     var followers = doc.followers.slice(0, limit);
                     var data = {status: "OK", users: followers};
                     if (followers.length === limit) {
-                        memcached1.set(mcKey, data, 0, function (error) {
+                        generalCache.set(mcKey, data, 0, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
@@ -447,7 +394,7 @@ app.get("/user/:username/following", function (request, response) {
 
     var mcKey = [username, limit, "following"].toString(); //Memcached key
 
-    memcached1.get(mcKey, function (error, data) {
+    generalCache.get(mcKey, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
@@ -460,7 +407,7 @@ app.get("/user/:username/following", function (request, response) {
                     var following = doc.following.slice(0, limit);
                     var data = {status: "OK", users: following};
                     if (following.length === limit) {
-                        memcached1.set(mcKey, data, 0, function (error) {
+                        generalCache.set(mcKey, data, 0, function (error) {
                             if (error) {
                                 response.json({status: "error", error: error.toString()});
                             } else {
