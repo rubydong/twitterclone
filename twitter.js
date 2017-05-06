@@ -23,18 +23,17 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
     }
     db = database;
 
-//    db.createIndex("users", {username: 1}, {background: true}, function () {
-//    db.createIndex("users", {email: 1}, {background: true}, function () {
-//        console.log("Connected to MongoDB with indexes created");
-//    });
-//    });
+    db.createIndex("users", {username: 1}, {background: true}, function () {
+    db.createIndex("users", {email: 1}, {background: true}, function () {
+        console.log("Connected to MongoDB with indexes created");
+    });
+    });
 });
 
 //Set up Memcached
 var Memcached = require("memcached");
 var getTweetsCache = new Memcached("localhost:11211");
-var getMediaCache = new Memcached("localhost:11212");
-var generalCache = new Memcached("localhost:11213");
+var generalCache = new Memcached("localhost:11212");
 
 app.post("/adduser", function (request, response) {
     var username = request.body.username;
@@ -95,11 +94,11 @@ app.post("/verify", function (request, response) {
 });
 
 app.post("/additem", function (request, response) {
-    var parent = request.body.parent ? request.body.parent : "none";
-    var media = request.body.media ? request.body.media : [];
-
     var id = new ObjectID().toHexString();
     response.json({status: "OK", id: id});
+
+    var parent = request.body.parent ? request.body.parent : "none";
+    var media = request.body.media ? request.body.media : [];
     var tweet = {
         _id: id,
         id: id,
@@ -121,20 +120,19 @@ app.post("/addmedia", upload.single("content"), function (request, response) {
 
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
-    var mcKey = id + "tweet"; //Memcached key
 
-    getTweetsCache.get(mcKey, function (error, data) {
+    getTweetsCache.get(id, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
             response.json({status: "OK", item: data});
         } else {
-            db.collection("tweets").findOne({_id: id}, function (error, tweet)  {
+            db.collection("tweets").findOne({_id: id}, function (error, doc)  {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
-                } else if (tweet) {
-                    response.json({status: "OK", item: tweet});
-                    getTweetsCache.set(mcKey, tweet, 0);
+                } else if (doc) {
+                    response.json({status: "OK", item: doc});
+                    getTweetsCache.set(id, doc, 0);
                 } else {
                     response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
                 }
@@ -145,26 +143,15 @@ app.get("/item/:id", function (request, response) {
 
 app.get("/media/:id", function (request, response) {
     var id = request.params.id;
-    var mcKey = id + "media";  //Memcached key
 
-    getMediaCache.get(mcKey, function (error, data) {
+    db.collection("media").findOne({_id: id}, function (error, media) {
         if (error) {
             response.json({status: "error", error: error.toString()});
-        } else if (data) {
-            response.setHeader("Content-Type", data.type);
-            response.end(data.type);
+        } else if (media) {
+            response.setHeader("Content-Type", media.type);
+            response.end(media.type);
         } else {
-            db.collection("media").findOne({_id: id}, function (error, media) {
-                if (error) {
-                    response.json({status: "error", error: error.toString()});
-                } else if (media) {
-                    response.setHeader("Content-Type", media.type);
-                    response.end(media.type);
-                    getMediaCache.set(mcKey, media, 0);
-                } else {
-                    response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
-                }
-            });
+            response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
         }
     });
 });
@@ -177,14 +164,8 @@ app.delete("/item/:id", function (request, response) {
             response.json({status: "error", error: error.toString()});
         } else if (doc.value) {
             response.json({status: "OK"});
+            db.collection("media").deleteMany({_id: {$in: doc.value.media}});
             getTweetsCache.del(id);
-            var media = doc.value.media;
-            if (media) {
-                db.collection("media").deleteMany({_id: {$in: media}});
-                media.forEach(function (mediaId) {
-                    getMediaCache.del(mediaId);
-                });
-            }
         } else {
             response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
         }
