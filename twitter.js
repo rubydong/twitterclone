@@ -33,7 +33,8 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
 //Set up Memcached
 var Memcached = require("memcached");
 var getTweetsCache = new Memcached("localhost:11211");
-var generalCache = new Memcached("localhost:11212");
+var getMediaCache = new Memcached("localhost:11212");
+var generalCache = new Memcached("localhost:11213");
 
 app.post("/adduser", function (request, response) {
     var username = request.body.username;
@@ -55,7 +56,7 @@ app.post("/adduser", function (request, response) {
                 followers: [],
                 following: []
             };
-            db.collection("users").insertOne(newUser, function () {});
+            db.collection("users").insertOne(newUser);
         }
     });
 });
@@ -87,7 +88,7 @@ app.post("/verify", function (request, response) {
 
     if (key === "abracadabra") {
         response.json({status: "OK"});
-        db.collection("users").updateOne({email: email}, {$set: {verified: "yes"}}, function () {});
+        db.collection("users").updateOne({email: email}, {$set: {verified: "yes"}});
     } else {
         response.json({status: "error", error: "INCORRECT KEY"});
     }
@@ -108,37 +109,32 @@ app.post("/additem", function (request, response) {
         parent: parent,
         media: media
     };
-    db.collection("tweets").insertOne(tweet, function () {});
+    db.collection("tweets").insertOne(tweet);
 });
 
 app.post("/addmedia", upload.single("content"), function (request, response) {
     var id = new ObjectID().toHexString();
-
+    response.json({status: "OK", id: id});
     var media = {_id: id, type: request.file.mimetype};
-    db.collection("media").insertOne(media, function (error) {
-        if (error) {
-            response.json({status: "error", error: error.toString()});
-        } else {
-            response.json({status: "OK", id: id});
-        }
-    });
+    db.collection("media").insertOne(media);
 });
 
 app.get("/item/:id", function (request, response) {
     var id = request.params.id;
+    var mcKey = id + "tweet"; //Memcached key
 
-    getTweetsCache.get(id, function (error, data) {
+    getTweetsCache.get(mcKey, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
         } else if (data) {
             response.json({status: "OK", item: data});
         } else {
-            db.collection("tweets").findOne({_id: id}, function (error, doc)  {
+            db.collection("tweets").findOne({_id: id}, function (error, tweet)  {
                 if (error) {
                     response.json({status: "error", error: error.toString()});
-                } else if (doc) {
-                    response.json({status: "OK", item: doc});
-                    getTweetsCache.set(id, doc, 0, function () {});
+                } else if (tweet) {
+                    response.json({status: "OK", item: tweet});
+                    getTweetsCache.set(mcKey, tweet, 0);
                 } else {
                     response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
                 }
@@ -149,15 +145,26 @@ app.get("/item/:id", function (request, response) {
 
 app.get("/media/:id", function (request, response) {
     var id = request.params.id;
+    var mcKey = id + "media";  //Memcached key
 
-    db.collection("media").findOne({_id: id}, function (error, media) {
+    getMediaCache.get(mcKey, function (error, data) {
         if (error) {
             response.json({status: "error", error: error.toString()});
-        } else if (media) {
-            response.setHeader("Content-Type", media.type);
-            response.end(media.type);
+        } else if (data) {
+            response.setHeader("Content-Type", data.type);
+            response.end(data.type);
         } else {
-            response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
+            db.collection("media").findOne({_id: id}, function (error, media) {
+                if (error) {
+                    response.json({status: "error", error: error.toString()});
+                } else if (media) {
+                    response.setHeader("Content-Type", media.type);
+                    response.end(media.type);
+                    getMediaCache.set(mcKey, media, 0);
+                } else {
+                    response.json({status: "error", error: "MEDIA " + id + " NOT FOUND"});
+                }
+            });
         }
     });
 });
@@ -170,8 +177,14 @@ app.delete("/item/:id", function (request, response) {
             response.json({status: "error", error: error.toString()});
         } else if (doc.value) {
             response.json({status: "OK"});
-            db.collection("media").deleteMany({_id: {$in: doc.value.media}}, function () {});
-            getTweetsCache.del(id, function () {});
+            getTweetsCache.del(id);
+            var media = doc.value.media;
+            if (media) {
+                db.collection("media").deleteMany({_id: {$in: media}});
+                media.forEach(function (mediaId) {
+                    getMediaCache.del(mediaId);
+                });
+            }
         } else {
             response.json({status: "error", error: "TWEET " + id + " NOT FOUND"});
         }
@@ -197,7 +210,7 @@ app.post("/search", function (request, response) {
             } else {
                 var data = {status: "OK", items: Array(limit).fill({id: "", username: "", content: "", timestamp: 0, parent: "", media: []})};
                 response.json(data);
-                generalCache.set(mcKey, data, 0, function () {});
+                generalCache.set(mcKey, data, 0);
             }
         });
     }
@@ -248,7 +261,7 @@ app.get("/user/:username/followers", function (request, response) {
                     var data = {status: "OK", users: followers};
                     response.json(data);
                     if (followers.length === limit) {
-                        generalCache.set(mcKey, data, 0, function () {});
+                        generalCache.set(mcKey, data, 0);
                     }
                 } else {
                     response.json({status: "error", error: username + " NOT FOUND"});
@@ -282,7 +295,7 @@ app.get("/user/:username/following", function (request, response) {
                     var data = {status: "OK", users: following};
                     response.json(data);
                     if (following.length === limit) {
-                        generalCache.set(mcKey, data, 0, function () {});
+                        generalCache.set(mcKey, data, 0);
                     }
                 } else {
                     response.json({status: "error", error: username + " NOT FOUND"});
@@ -306,7 +319,7 @@ app.post("/follow", function (request, response) {
                 response.json({status: "error", error: error.toString()});
             } else if (doc) {
                 response.json({status: "OK"});
-                db.collection("users").updateOne({username: follower}, {$addToSet: {following: followee}}, function () {});
+                db.collection("users").updateOne({username: follower}, {$addToSet: {following: followee}});
             } else {
                 response.json({status: "error", error: followee + " NOT FOUND"});
             }
@@ -317,7 +330,7 @@ app.post("/follow", function (request, response) {
                 response.json({status: "error", error: error.toString()});
             } else if (doc) {
                 response.json({status: "OK"});
-                db.collection("users").updateOne({username: follower}, {$pull: {following: followee}}, function () {});
+                db.collection("users").updateOne({username: follower}, {$pull: {following: followee}});
             } else {
                 response.json({status: "error", error: followee + " NOT FOUND"});
             }
