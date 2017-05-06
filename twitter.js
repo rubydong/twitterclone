@@ -23,11 +23,11 @@ MongoClient.connect("mongodb://130.245.168.251:27017/twitter", function (error, 
     }
     db = database;
 
-    db.createIndex("users", {username: 1}, {background: true}, function () {
-    db.createIndex("users", {email: 1}, {background: true}, function () {
-        console.log("Connected to MongoDB with indexes created");
-    });
-    });
+//    db.createIndex("users", {username: 1}, {background: true}, function () {
+//    db.createIndex("users", {email: 1}, {background: true}, function () {
+//        console.log("Connected to MongoDB with indexes created");
+//    });
+//    });
 });
 
 //Set up Memcached
