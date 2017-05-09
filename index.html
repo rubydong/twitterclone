@@ -105,7 +105,6 @@
                     JSON.stringify({ id: id, user: username}));
                     likedAlready.success(function (data) {
                         if (data.status == "OK") {
-                            alert("did i even try");
                             var likePost = $http.post("/item/"+id+"/like",  
                             JSON.stringify({like: !data.liked}));
                             likePost.success(function (data) {
